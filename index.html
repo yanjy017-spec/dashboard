@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매출현황 대시보드 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d1117;
+    --surface:  #161b22;
+    --surface2: #21262d;
+    --border:   #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --accent:   #e8401c;
+    --accent2:  #f0883e;
+    --blue:     #388bfd;
+    --green:    #3fb950;
+    --purple:   #a371f7;
+    --yellow:   #d29922;
+    --red:      #f85149;
+    --font:     'Noto Sans KR', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* ── 헤더 ─────────────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,17,23,.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo {
+    font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .logo-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.3)} }
+
+  .header-meta {
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .btn-connect {
+    font-size: 12px; padding: 6px 14px; border-radius: 6px;
+    border: 1px solid var(--accent); background: transparent;
+    color: var(--accent); cursor: pointer; font-family: var(--font);
+    transition: all .2s;
+  }
+  .btn-connect:hover { background: var(--accent); color: #fff; }
+  .btn-connect.connected { border-color: var(--green); color: var(--green); }
+  .btn-connect.connected:hover { background: var(--green); color: #0d1117; }
+
+  /* ── 레이아웃 ─────────────────────────────── */
+  .container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+
+  /* ── 기준월 셀렉터 ─────────────────────────── */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
+  }
+  .toolbar-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .toolbar-right { display: flex; gap: 10px; align-items: center; }
+  .month-tabs {
+    display: flex; gap: 4px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px;
+  }
+  .month-tab {
+    font-size: 12px; padding: 5px 10px; border-radius: 5px;
+    border: none; background: transparent; color: var(--muted);
+    cursor: pointer; font-family: var(--font); transition: all .15s;
+  }
+  .month-tab.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .month-tab:disabled { opacity: .3; cursor: default; }
+  .month-tab:not(.active):not(:disabled):hover { background: var(--surface2); color: var(--text); }
+
+  /* ── KPI 카드 ────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .kpi-row-label {
+    grid-column: 1 / -1;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted);
+    padding: 4px 2px 0; border-top: 1px solid var(--border); margin-top: 4px;
+  }
+  .kpi-row-label:first-child { border-top: none; margin-top: 0; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    position: relative; overflow: hidden;
+    transition: border-color .2s, transform .15s;
+  }
+  .kpi-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--card-color, var(--accent)) 0%, transparent 100%);
+  }
+  .kpi-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .kpi-value { font-size: 34px; font-weight: 700; font-family: var(--mono); letter-spacing: -1.5px; line-height: 1; }
+  .kpi-sub { margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .kpi-badge {
+    font-size: 11px; padding: 2px 7px; border-radius: 4px; font-family: var(--mono); font-weight: 600;
+  }
+  .badge-green { background: rgba(63,185,80,.15); color: var(--green); }
+  .badge-red   { background: rgba(248,81,73,.15);  color: var(--red); }
+  .badge-blue  { background: rgba(56,139,253,.15); color: var(--blue); }
+  .badge-muted { background: var(--surface2); color: var(--muted); }
+  .kpi-vs { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  /* ── 섹션 타이틀 ─────────────────────────── */
+  .section-hdr {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .section-hdr h2 { font-size: 14px; font-weight: 600; }
+  .section-hdr span { font-size: 11px; color: var(--muted); margin-left: 4px; }
+  .section-divider { flex: 1; height: 1px; background: var(--border); }
+
+  /* ── 차트 그리드 ─────────────────────────── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px;
+  }
+  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; }
+
+  .charts-row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px; margin-bottom: 24px;
+  }
+
+  /* ── 팀 테이블 ─────────────────────────── */
+  .team-table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .5px; color: var(--muted); padding: 8px 12px;
+    text-align: right; border-bottom: 1px solid var(--border);
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr { border-bottom: 1px solid rgba(48,54,61,.5); transition: background .1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 10px 12px; text-align: right; }
+  tbody td:first-child { text-align: left; font-weight: 500; }
+  .cell-num { font-family: var(--mono); font-size: 13px; }
+  .cell-pos { color: var(--green); }
+  .cell-neg { color: var(--red); }
+
+  /* ── 진행률 바 ─────────────────────────── */
+  .progress-wrap { display: flex; align-items: center; gap: 10px; min-width: 120px; }
+  .progress-bar { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+  .progress-pct { font-family: var(--mono); font-size: 12px; font-weight: 600; min-width: 42px; text-align: right; }
+
+  /* ── 부문 비교 카드 ─────────────────────── */
+  .division-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 24px;
+  }
+  .div-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .div-card-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .div-name { font-size: 13px; font-weight: 700; }
+  .div-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-family: var(--mono); }
+  .div-metrics { display: flex; gap: 24px; }
+  .div-metric { flex: 1; }
+  .div-metric-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .5px; }
+  .div-metric-value { font-size: 20px; font-weight: 700; font-family: var(--mono); }
+  .div-metric-sub { font-size: 11px; margin-top: 3px; }
+
+  /* ── 모달: 구글시트 연결 ─────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px; max-width: 480px; width: 90%;
+  }
+  .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
+  .modal-field input {
+    width: 100%; padding: 10px 14px; border-radius: 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 13px;
+    outline: none; transition: border-color .2s;
+  }
+  .modal-field input:focus { border-color: var(--blue); }
+  .modal-hint {
+    font-size: 11px; color: var(--muted); background: var(--surface2);
+    border-radius: 6px; padding: 10px 12px; margin-bottom: 20px; line-height: 1.6;
+  }
+  .modal-hint code { font-family: var(--mono); color: var(--accent2); }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-cancel { font-size: 13px; padding: 8px 18px; border-radius: 7px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); }
+  .btn-ok { font-size: 13px; padding: 8px 18px; border-radius: 7px; border: none; background: var(--accent); color: #fff; cursor: pointer; font-family: var(--font); font-weight: 600; }
+
+  /* ── 상태 배너 ─────────────────────────── */
+  .status-bar {
+    font-size: 11px; padding: 6px 14px; border-radius: 6px; margin-bottom: 16px;
+    display: none; align-items: center; gap: 8px;
+  }
+  .status-bar.show { display: flex; }
+  .status-bar.loading { background: rgba(56,139,253,.1); border: 1px solid rgba(56,139,253,.3); color: var(--blue); }
+  .status-bar.success { background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3); color: var(--green); }
+  .status-bar.error   { background: rgba(248,81,73,.1);  border: 1px solid rgba(248,81,73,.3);  color: var(--red); }
+
+  /* ── 스피너 ─────────────────────────────── */
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid transparent;
+    border-top-color: currentColor; border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── 푸터 ─────────────────────────────── */
+  .ops-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 24px;
+  }
+  .ops-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .ops-card-wide { grid-column: span 4; }
+  .ops-card-title {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px;
+  }
+  .ops-content { font-size: 13px; }
+  .ops-kv { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(48,54,61,.4); }
+  .ops-kv:last-child { border-bottom: none; }
+  .ops-key { color: var(--muted); font-size: 12px; }
+  .ops-val { font-family: var(--mono); font-weight: 600; font-size: 14px; }
+  .ops-memo-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(48,54,61,.4); align-items: flex-start; }
+  .ops-memo-row:last-child { border-bottom: none; }
+  /* ── 운영현황 공통 ── */
+  .ops-card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 16px; }
+  .ops-empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 8px 0; }
+
+  /* ── 경매 운영지표 ── */
+  .ops-auction-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 28px; margin-bottom: 16px;
+    border-left: 3px solid var(--accent);
+  }
+  .ops-auction-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 20px; }
+  .ops-auction-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; }
+  .ops-auction-item { padding-right: 28px; border-right: 1px solid var(--border); margin-right: 28px; }
+  .ops-auction-item:last-child { border-right: none; margin-right: 0; padding-right: 0; }
+  .ops-auction-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: .3px; }
+  .ops-auction-value { font-size: 30px; font-weight: 700; font-family: var(--mono); letter-spacing: -1px; margin-bottom: 6px; }
+  .ops-auction-prev { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .ops-auction-prev span { color: var(--text); font-weight: 600; }
+  .ops-auction-diff { font-size: 12px; font-weight: 600; }
+  .ops-auction-diff.up { color: var(--green); }
+  .ops-auction-diff.down { color: var(--red); }
+  .ops-auction-diff.neutral { color: var(--muted); }
+
+  /* ── 인원/현금/재고 3칸 ── */
+  .ops-row3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 16px; }
+  .ops-card3 { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .ops-big-val { font-size: 26px; font-weight: 700; font-family: var(--mono); letter-spacing: -1px; margin-bottom: 2px; }
+  .ops-big-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+  .ops-kv { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(48,54,61,.5); }
+  .ops-kv:last-child { border-bottom: none; }
+  .ops-key { color: var(--muted); font-size: 12px; }
+  .ops-val { font-family: var(--mono); font-weight: 600; font-size: 13px; }
+  .ops-diff-up { color: var(--green); font-weight: 700; }
+  .ops-diff-dn { color: var(--red); font-weight: 700; }
+
+  /* ── 특이사항 ── */
+  .ops-memo-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 24px; }
+  .ops-memo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .ops-memo-item { background: var(--surface2); border-radius: 8px; padding: 14px 16px; border: 1px solid var(--border); }
+  .ops-memo-badges { display: flex; gap: 6px; margin-bottom: 10px; }
+  .ops-memo-cat { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--surface); color: var(--muted); white-space: nowrap; }
+  .ops-memo-cat.매출 { background: rgba(56,139,253,.18); color: #58a6ff; }
+  .ops-memo-cat.비용 { background: rgba(210,153,34,.18); color: var(--yellow); }
+  .ops-memo-cat.인원 { background: rgba(63,185,80,.18); color: var(--green); }
+  .ops-memo-cat.경매 { background: rgba(248,81,73,.18); color: var(--red); }
+  .ops-memo-cat.기타 { background: var(--surface); color: var(--muted); }
+  .ops-memo-priority { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--surface); color: var(--muted); }
+  .ops-memo-priority.상 { background: rgba(248,81,73,.18); color: var(--red); font-weight:700; }
+  .ops-memo-priority.중 { background: rgba(210,153,34,.18); color: var(--yellow); }
+  .ops-memo-txt { font-size: 13px; line-height: 1.55; margin-bottom: 6px; }
+  .ops-memo-dept { font-size: 11px; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    .ops-auction-grid { grid-template-columns: repeat(2,1fr); gap: 20px; }
+    .ops-auction-item { border-right: none; margin-right: 0; padding-right: 0; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .ops-auction-item:nth-child(odd) { border-right: 1px solid var(--border); padding-right: 20px; margin-right: 0; }
+    .ops-auction-item:nth-last-child(-n+2) { border-bottom: none; padding-bottom: 0; }
+    .ops-row3 { grid-template-columns: 1fr; }
+  }
+
+  footer {
+    margin-top: 40px; padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--muted);
+  }
+  footer span { font-family: var(--mono); }
+
+  /* ── 반응형 ─────────────────────────────── */
+  @media (max-width: 900px) {
+    .charts-row, .charts-row2, .division-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .container { padding: 16px; }
+    header { padding: 0 16px; }
+    .toolbar { flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 480px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-value { font-size: 22px; }
+    .month-tabs { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 헤더 ──────────────────────────────────── -->
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      매출현황 대시보드
+    </div>
+    <div class="header-meta">
+      <div class="live-dot" id="liveDot" style="background:var(--yellow)"></div>
+      <span id="dataSource">샘플 데이터</span>
+    </div>
+  </div>
+  <button class="btn-connect" id="btnConnect" onclick="connectSheets()">구글시트 연결</button>
+</header>
+
+<!-- ── 상태 배너 ─────────────────────────────── -->
+<div class="container" style="padding-bottom:0">
+  <div class="status-bar" id="statusBar">
+    <div class="spinner"></div>
+    <span id="statusMsg"></span>
+  </div>
+</div>
+
+<!-- ── 메인 ──────────────────────────────────── -->
+<div class="container">
+
+  <!-- 툴바 -->
+  <div class="toolbar">
+    <div class="toolbar-title">2026 경영실적 현황</div>
+    <div class="toolbar-right">
+      <div class="month-tabs" id="monthTabs"></div>
+    </div>
+  </div>
+
+  <!-- KPI 카드 -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- 차트 1: 트렌드 + 도넛 -->
+  <div class="section-hdr">
+    <h2>매출 트렌드</h2><span>실적 vs 목표 vs 전년</span>
+    <div class="section-divider"></div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">전사 월별 매출액</div>
+      <div class="chart-sub">단위: 억원</div>
+      <div class="chart-wrap"><canvas id="chartRevenue" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">연간 목표 달성 현황</div>
+      <div class="chart-sub">누적 실적 / 연간 목표</div>
+      <div class="chart-wrap"><canvas id="chartDonut" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 차트 2: 세전이익 트렌드 + 부문별 -->
+  <div class="section-hdr">
+    <h2>이익 현황</h2><span>직접 세전이익 기준</span>
+    <div class="section-divider"></div>
+  </div>
+  <div class="charts-row2">
+    <div class="chart-card">
+      <div class="chart-title">전사 세전이익 (전체 기준)</div>
+      <div class="chart-sub">단위: 억원</div>
+      <div class="chart-wrap"><canvas id="chartProfit" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">부문별 세전이익 비교</div>
+      <div class="chart-sub">당월 실적 vs 목표 (직접 기준, 억원)</div>
+      <div class="chart-wrap"><canvas id="chartDivision" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 부문 카드 -->
+  <div class="section-hdr">
+    <h2>부문 요약</h2><span id="divSectionSub">기준월 실적</span>
+    <div class="section-divider"></div>
+  </div>
+  <div class="division-grid" id="divisionGrid"></div>
+
+  <!-- 팀별 테이블 -->
+  <div class="section-hdr">
+    <h2>팀별 직접 세전이익</h2><span>실적 / 목표 / 전년 / 달성률</span>
+    <div class="section-divider"></div>
+  </div>
+  <div class="team-table-card">
+    <table id="teamTable">
+      <thead>
+        <tr>
+          <th style="text-align:left">팀</th>
+          <th>실적 (억원)</th>
+          <th>목표 (억원)</th>
+          <th>전년 (억원)</th>
+          <th>달성률 (목표)</th>
+          <th>전년대비</th>
+        </tr>
+      </thead>
+      <tbody id="teamTbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── 운영 현황 섹션 ─────────────────────────── -->
+<div class="container" style="padding-top:0">
+
+  <div class="section-hdr">
+    <h2>운영 현황</h2><span>인원 · 현금 · 재고 · 특이사항</span>
+    <div class="section-divider"></div>
+  </div>
+
+  <!-- 경매 운영지표 -->
+  <div class="ops-auction-card" id="opsAuction">
+    <div class="ops-auction-title">🏟 경매 운영지표</div>
+    <div class="ops-auction-grid" id="opsAuctionGrid">
+      <div class="ops-empty">구글시트 db_auction에 데이터를 입력하세요</div>
+    </div>
+  </div>
+
+  <!-- 인원 / 현금 / 재고 -->
+  <div class="ops-row3">
+    <div class="ops-card3">
+      <div class="ops-card-title">👥 인원현황</div>
+      <div id="opsStaff" class="ops-content">데이터 로딩 중...</div>
+    </div>
+    <div class="ops-card3">
+      <div class="ops-card-title">💰 기말 가용현금</div>
+      <div id="opsCash" class="ops-content">데이터 로딩 중...</div>
+    </div>
+    <div class="ops-card3">
+      <div class="ops-card-title">📦 재고현황</div>
+      <div id="opsInventory" class="ops-content">데이터 로딩 중...</div>
+    </div>
+  </div>
+
+  <!-- 당월 특이사항 -->
+  <div class="ops-memo-card">
+    <div class="ops-card-title">📝 당월 특이사항</div>
+    <div id="opsMemo" class="ops-memo-grid">데이터 로딩 중...</div>
+  </div>
+
+</div>
+
+<!-- 푸터 -->
+<footer>
+  <span>매출현황 대시보드 · 2026</span>
+  <span id="lastUpdate">마지막 업데이트: —</span>
+</footer>
+
+<!-- ── 구글시트 연결 모달 ──────────────────── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>🔗 구글시트 연결</h3>
+    <p>버튼을 누르면 구글시트 데이터를 불러옵니다. 매월 raw_2026 시트 업데이트 후 다시 연결하면 최신 데이터가 반영됩니다.</p>
+    <div class="modal-hint">
+      연결 대상: <code>summary</code> 시트<br>
+      데이터 소스: Apps Script 프록시 (자동 연결)
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-ok" onclick="connectSheets()">연결하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// 데이터 (엑셀에서 추출한 실제값 + 나머지 월 목표/전년으로 채움)
+// ═══════════════════════════════════════════════════════════════
+const RAW = {
+  months: ['01','02','03','04','05','06','07','08','09','10','11','12'],
+
+  // 전사 매출액
+  rev: {
+    실적: [265.0, 254.9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    목표: [273.0, 297.7, 320.8, 398.6, 335.7, 339.3, 435.0, 356.4, 317.1, 424.4, 366.3, 415.3],
+    전년: [229.0, 301.6, 273.9, 309.3, 234.3, 229.9, 295.7, 216.0, 245.0, 239.4, 257.2, 334.7],
+  },
+
+  // 전사 세전이익(전체)
+  profit: {
+    실적: [4.3, 2.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    목표: [1.6, 3.2, 4.2, 7.4, 4.5, 4.3, 9.2, 5.0, 3.0, 8.6, 5.5, 7.5],
+    전년: [4.9, 8.7, 6.8, 10.3, 5.2, 4.4, 6.3, 1.2, 4.8, 2.3, 3.2, 5.8],
+  },
+
+  // 전사 직접 세전이익
+  profitDirect: {
+    실적: [8.8, 5.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    목표: [6.6, 8.1, 9.0, 12.7, 9.4, 9.3, 14.1, 9.7, 7.9, 13.5, 10.3, 12.7],
+    전년: [8.9, 12.6, 10.6, 14.1, 8.7, 7.8, 9.8, 4.5, 8.4, 5.8, 6.6, 8.9],
+  },
+
+  // 팀별 직접 세전이익 (1~2월 실적, 나머지 0)
+  teams: {
+    'AUCTION팀':   { 실적:[2.66,1.50,0,0,0,0,0,0,0,0,0,0], 목표:[1.57,2.05,2.42,3.72,2.64,2.62,4.04,2.73,2.22,3.91,2.87,3.59], 전년:[3.44,4.72,3.66,5.00,2.91,2.51,3.00,1.37,2.56,1.87,2.11,2.30] },
+    '출품영업팀':  { 실적:[4.15,2.20,0,0,0,0,0,0,0,0,0,0], 목표:[3.16,3.98,4.17,5.90,3.97,3.86,6.11,4.14,3.62,6.06,4.41,5.54], 전년:[2.78,4.89,4.10,5.47,3.23,2.62,4.35,1.74,3.57,2.27,2.97,3.74] },
+    '딜러운영팀':  { 실적:[0.09,-0.10,0,0,0,0,0,0,0,0,0,0], 목표:[0.35,0.44,0.44,0.70,0.43,0.43,0.70,0.44,0.35,0.70,0.44,0.44], 전년:[0.03,0.31,0.34,0.60,0.22,0.28,0.37,0.22,0.34,0.23,0.25,0.43] },
+    '직영판매팀':  { 실적:[-0.33,-0.36,0,0,0,0,0,0,0,0,0,0], 목표:[-0.14,0.03,0.03,0.14,-0.01,-0.01,0.14,0.03,-0.03,0.14,0.03,0.03], 전년:[-0.54,-0.20,-0.23,0.14,-0.27,-0.41,-0.17,-0.85,-0.17,-0.47,-0.19,-0.15] },
+    '제휴영업팀':  { 실적:[1.26,0.71,0,0,0,0,0,0,0,0,0,0], 목표:[1.28,1.26,1.26,2.16,1.28,1.26,2.16,1.28,1.19,2.16,1.28,1.31], 전년:[3.84,4.72,3.66,4.77,2.97,2.98,2.63,2.22,2.56,2.19,1.94,2.77] },
+    '매입영업팀':  { 실적:[0.92,1.17,0,0,0,0,0,0,0,0,0,0], 목표:[0.38,0.52,0.56,0.72,0.56,0.56,0.72,0.56,0.44,0.72,0.56,0.56], 전년:[-0.61,0.28,0.36,0.28,0.29,0.47,0.16,-0.07,0.47,-0.37,0.26,0.17] },
+  },
+
+  // 부문별 (OFFLINE, SALES)
+  offline: {
+    rev:  { 실적:[181.8,175.8,0,0,0,0,0,0,0,0,0,0], 목표:[164.3,193.0,208.7,272.6,218.3,218.4,298.5,228.9,200.0,282.9,241.5,275.6] },
+    profitDirect: { 실적:[6.81,4.05,0,0,0,0,0,0,0,0,0,0], 목표:[4.72,6.03,6.59,9.62,6.61,6.48,10.15,6.87,5.84,9.97,7.28,9.13] },
+  },
+  sales: {
+    rev:  { 실적:[83.2,79.1,0,0,0,0,0,0,0,0,0,0], 목표:[108.7,104.7,112.1,126.0,117.4,120.9,136.5,127.5,117.1,141.5,124.8,139.7] },
+    profitDirect: { 실적:[1.94,1.04,0,0,0,0,0,0,0,0,0,0], 목표:[1.86,2.05,2.39,3.12,2.77,2.84,3.97,2.83,2.09,3.55,3.01,3.61] },
+  },
+
+  // 연간 합계
+  grossProfit: {
+    실적: [14.4, 11.8, 0,0,0,0,0,0,0,0,0,0],
+    목표: [13.6, 15.2, 16.1, 19.8, 16.6, 16.4, 21.2, 17.0, 15.1, 20.7, 17.5, 20.0],
+    전년: [15.3, 19.5, 17.4, 20.9, 15.9, 14.5, 17.4, 11.5, 13.1, 12.6, 13.1, 15.5],
+  },
+  sga: {
+    실적: [6.4, 6.7, 0,0,0,0,0,0,0,0,0,0],
+    목표: [7.0, 7.1, 7.1, 7.1, 7.2, 7.1, 7.1, 7.3, 7.2, 7.2, 7.2, 7.3],
+  },
+
+  margins: {
+    상품:   [0.014, 0.013, 0,0,0,0,0,0,0,0,0,0],  // 1.4%, 1.3%
+    경매:   [0.847, 0.841, 0,0,0,0,0,0,0,0,0,0],  // 84.7%, 84.1%
+    상품LY: [0.018, 0.016, 0.020, 0.020, 0.019, 0.019, 0.017, 0.016, 0.018, 0.018, 0.018, 0.018],
+    경매LY: [0.820, 0.830, 0.840, 0.845, 0.835, 0.830, 0.840, 0.825, 0.835, 0.828, 0.832, 0.840],
+  },
+
+  annual: {
+    rev:     { 실적: 520,  목표: 4280, 전년: 3166 },
+    gp:      { 실적: 26,   목표: 209,  전년: 187 },
+    profit:  { 실적: 6,    목표: 64,   전년: 64 },
+    profitD: { 실적: 14,   목표: 123,  전년: 107 },
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 상태
+// ═══════════════════════════════════════════════════════════════
+let state = {
+  month: 1,
+  maxMonth: 2,
+  sheetId: '',
+  connected: false,
+  data: RAW,
+  dbStaff: [],
+  dbCash: [],
+  dbInventory: [],
+  dbMemo: [],
+  dbAuction: [],
+};
+let charts = {};
+
+// ═══════════════════════════════════════════════════════════════
+// 헬퍼
+// ═══════════════════════════════════════════════════════════════
+function fmt(v, dec=1) {
+  if (v == null || v === 0) return '—';
+  return v.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function fmtPct(v) {
+  if (!v || isNaN(v)) return '—';
+  return (v*100).toFixed(1) + '%';
+}
+function rateBadge(실적, 목표) {
+  if (!목표) return '';
+  const r = 실적 / 목표;
+  const cls = r >= 1 ? 'badge-green' : r >= 0.8 ? 'badge-blue' : 'badge-red';
+  return `<span class="kpi-badge ${cls}">${(r*100).toFixed(1)}%</span>`;
+}
+function changeSign(curr, prev) {
+  if (!prev || prev === 0) return '';
+  const diff = ((curr - prev) / Math.abs(prev) * 100).toFixed(1);
+  const cls = curr >= prev ? 'badge-green' : 'badge-red';
+  const arrow = curr >= prev ? '▲' : '▼';
+  return `<span class="kpi-badge ${cls}">${arrow}${Math.abs(diff)}%</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 월 탭 렌더
+// ═══════════════════════════════════════════════════════════════
+function renderMonthTabs() {
+  const tabs = document.getElementById('monthTabs');
+  tabs.innerHTML = state.data.months.map((m, i) => {
+    const mon = i + 1;
+    const hasData = mon <= state.maxMonth;
+    const active = mon === state.month ? 'active' : '';
+    const dis = !hasData ? 'disabled' : '';
+    return `<button class="month-tab ${active}" ${dis} onclick="selectMonth(${mon})">${m}월</button>`;
+  }).join('');
+}
+
+function selectMonth(m) {
+  if (m > state.maxMonth) return;
+  state.month = m;
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KPI 카드
+// ═══════════════════════════════════════════════════════════════
+function renderKPI() {
+  const m = state.month - 1;
+  const d = state.data;
+
+  // 누적
+  const cumRev실적  = d.rev.실적.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumRev목표  = d.rev.목표.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumRev전년  = d.rev.전년.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumGP실적   = d.grossProfit.실적.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumGP목표   = d.grossProfit.목표.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumGP전년   = d.grossProfit.전년.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumP실적    = d.profit.실적.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumP목표    = d.profit.목표.slice(0,m+1).reduce((a,b)=>a+b,0);
+  const cumP전년    = d.profit.전년.slice(0,m+1).reduce((a,b)=>a+b,0);
+
+  const revRate  = cumRev목표  ? cumRev실적/d.annual.rev.목표   : 0;
+  const gpRate   = cumGP목표   ? cumGP실적/d.annual.gp.목표    : 0;
+  const profRate = cumP목표    ? cumP실적/d.annual.profit.목표  : 0;
+
+  // 당월
+  const mRev실적 = d.rev.실적[m];
+  const mRev목표 = d.rev.목표[m];
+  const mRev전년 = d.rev.전년[m];
+  const mGP실적  = d.grossProfit.실적[m];
+  const mGP목표  = d.grossProfit.목표[m];
+  const mP실적   = d.profit.실적[m];
+  const mP목표   = d.profit.목표[m];
+  const mP전년   = d.profit.전년[m];
+
+  // 이익률 — summary 시트 섹션7에서 직접 (%)
+  const 상품마진 = (d.margins ? d.margins.상품[m] : 0) * 100;
+  const 경매마진 = (d.margins ? d.margins.경매[m] : 0) * 100;
+  const 상품마진LY = (d.margins ? d.margins.상품LY[m] : 0) * 100;
+  const 경매마진LY = (d.margins ? d.margins.경매LY[m] : 0) * 100;
+  const offMargin = 경매마진;
+  const salMargin = 상품마진;
+  const offMarginLY = 경매마진LY;
+  const salMarginLY = 상품마진LY;
+
+  function marginBadge(curr, prev) {
+    if (!prev) return '';
+    const diff = (curr - prev).toFixed(1);
+    const cls = curr >= prev ? 'badge-green' : 'badge-red';
+    const arrow = curr >= prev ? '▲' : '▼';
+    return `<span class="kpi-badge ${cls}">${arrow}${Math.abs(diff)}%p</span>`;
+  }
+
+  const ROW1 = [
+    { label:'누적 매출액',       value:`${fmt(cumRev실적,0)}억`,  color:'--accent',
+      badges:[rateBadge(cumRev실적,cumRev목표), changeSign(cumRev실적,cumRev전년)],
+      vs:`목표 ${fmt(cumRev목표,0)}억 · 전년 ${fmt(cumRev전년,0)}억` },
+    { label:'누적 매출이익',      value:`${fmt(cumGP실적,1)}억`,   color:'--blue',
+      badges:[rateBadge(cumGP실적,cumGP목표), changeSign(cumGP실적,cumGP전년)],
+      vs:`목표 ${fmt(cumGP목표,1)}억 · 전년 ${fmt(cumGP전년,1)}억` },
+    { label:'누적 세전이익',      value:`${fmt(cumP실적,1)}억`,    color:'--green',
+      badges:[rateBadge(cumP실적,cumP목표), changeSign(cumP실적,cumP전년)],
+      vs:`목표 ${fmt(cumP목표,1)}억 · 전년 ${fmt(cumP전년,1)}억` },
+    { label:'연간 매출 달성률',   value:`${(revRate*100).toFixed(1)}%`,  color:'--purple',
+      badges:[`<span class="kpi-badge badge-muted">${state.month}개월 기준</span>`],
+      vs:`연간목표 ${fmt(d.annual.rev.목표,0)}억` },
+    { label:'연간 매출이익 달성률', value:`${(gpRate*100).toFixed(1)}%`, color:'--yellow',
+      badges:[`<span class="kpi-badge badge-muted">${state.month}개월 기준</span>`],
+      vs:`연간목표 ${fmt(d.annual.gp.목표,1)}억` },
+    { label:'연간 이익 달성률',   value:`${(profRate*100).toFixed(1)}%`, color:'--accent2',
+      badges:[`<span class="kpi-badge badge-muted">${state.month}개월 기준</span>`],
+      vs:`연간목표 ${fmt(d.annual.profit.목표,1)}억` },
+  ];
+
+  const ROW2 = [
+    { label:`당월 매출액 (${state.month}월)`,   value:`${fmt(mRev실적,0)}억`,
+      color:'--accent',
+      badges:[rateBadge(mRev실적,mRev목표), changeSign(mRev실적,mRev전년)],
+      vs:`목표 ${fmt(mRev목표,0)}억 · 전년 ${fmt(mRev전년,0)}억` },
+    { label:`당월 매출이익 (${state.month}월)`,  value:`${fmt(mGP실적,1)}억`,
+      color:'--blue',
+      badges:[rateBadge(mGP실적,mGP목표), changeSign(mGP실적,mGP목표)],
+      vs:`목표 ${fmt(mGP목표,1)}억` },
+    { label:`당월 판관비 (${state.month}월)`, value:`${fmt(d.sga ? d.sga.실적[m] : 0, 1)}억`,
+      color:'--red',
+      badges:[(() => { const v=d.sga?d.sga.실적[m]:0, t=d.sga?d.sga.목표[m]:0; if(!t) return ''; const ok=v<=t; return `<span class="kpi-badge ${ok?'badge-green':'badge-red'}">${ok?'▼':'▲'}목표대비 ${Math.abs((v-t)).toFixed(1)}억</span>`; })()],
+      vs:`목표 ${fmt(d.sga ? d.sga.목표[m] : 0, 1)}억 (낮을수록 좋음)` },
+    { label:`당월 세전이익 (${state.month}월)`,  value:`${fmt(mP실적,1)}억`,
+      color:'--green',
+      badges:[rateBadge(mP실적,mP목표), changeSign(mP실적,mP전년)],
+      vs:`목표 ${fmt(mP목표,1)}억 · 전년 ${fmt(mP전년,1)}억` },
+    { label:`경매매출 이익률 (${state.month}월)`, value:`${경매마진.toFixed(1)}%`,
+      color:'--purple',
+      badges:[marginBadge(경매마진, 경매마진LY)],
+      vs:`전년동월 ${경매마진LY.toFixed(1)}%` },
+    { label:`상품매출 이익률 (${state.month}월)`, value:`${상품마진.toFixed(1)}%`,
+      color:'--yellow',
+      badges:[marginBadge(상품마진, 상품마진LY)],
+      vs:`전년동월 ${상품마진LY.toFixed(1)}%` },
+  ];
+
+  const makeCard = c => `
+    <div class="kpi-card" style="--card-color:var(${c.color})">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${c.badges.join('')}<span class="kpi-vs">${c.vs}</span></div>
+    </div>`;
+
+  document.getElementById('kpiGrid').innerHTML =
+    `<div class="kpi-row-label">누적 실적</div>` +
+    ROW1.map(makeCard).join('') +
+    `<div class="kpi-row-label">당월 실적</div>` +
+    ROW2.map(makeCard).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 차트
+// ═══════════════════════════════════════════════════════════════
+const CHART_DEFAULTS = {
+  font: { family: "'Noto Sans KR', sans-serif" },
+  color: '#8b949e',
+};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function renderChartRevenue() {
+  destroyChart('rev');
+  const d = state.data;
+  const labels = d.months.map(m => m+'월');
+  const maxM = state.maxMonth;
+
+  charts.rev = new Chart(document.getElementById('chartRevenue'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '실적', data: d.rev.실적.map((v,i)=>i<maxM?v:null),
+          backgroundColor: 'rgba(232,64,28,.7)', borderRadius: 4, order: 1 },
+        { label: '목표', data: d.rev.목표,
+          type: 'line', borderColor: '#388bfd', borderWidth: 2,
+          pointRadius: 3, pointBackgroundColor: '#388bfd', fill: false, order: 0 },
+        { label: '전년', data: d.rev.전년,
+          type: 'line', borderColor: '#8b949e', borderWidth: 1.5,
+          borderDash: [4,3], pointRadius: 2, fill: false, order: 0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8b949e', font: CHART_DEFAULTS.font, boxWidth: 12 } },
+        tooltip: { backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#8b949e',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw,1)}억` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(48,54,61,.5)' }, ticks: { color: '#8b949e', font: CHART_DEFAULTS.font } },
+        y: { grid: { color: 'rgba(48,54,61,.5)' }, ticks: { color: '#8b949e', font: CHART_DEFAULTS.font,
+          callback: v => v+'억' } }
+      }
+    }
+  });
+}
+
+function renderChartDonut() {
+  destroyChart('donut');
+  const d = state.data;
+  const cumRev = d.rev.실적.reduce((a,b)=>a+b,0);
+  const remain = Math.max(0, d.annual.rev.목표 - cumRev);
+  const pct = (cumRev / d.annual.rev.목표 * 100).toFixed(1);
+
+  charts.donut = new Chart(document.getElementById('chartDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['달성', '잔여'],
+      datasets: [{
+        data: [cumRev, remain],
+        backgroundColor: ['rgba(232,64,28,.8)', 'rgba(48,54,61,.5)'],
+        borderWidth: 0, hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#8b949e',
+          callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw,0)}억` } },
+      }
+    },
+    plugins: [{
+      id: 'center',
+      beforeDraw(chart) {
+        const { ctx, chartArea: { top, bottom, left, right } } = chart;
+        const cx = (left+right)/2, cy = (top+bottom)/2;
+        ctx.save();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#e6edf3';
+        ctx.font = "bold 22px 'JetBrains Mono'";
+        ctx.fillText(pct+'%', cx, cy-10);
+        ctx.font = "11px 'Noto Sans KR'";
+        ctx.fillStyle = '#8b949e';
+        ctx.fillText('연간 달성률', cx, cy+14);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+function renderChartProfit() {
+  destroyChart('profit');
+  const d = state.data;
+  const labels = d.months.map(m => m+'월');
+  const maxM = state.maxMonth;
+
+  charts.profit = new Chart(document.getElementById('chartProfit'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '실적', data: d.profit.실적.map((v,i)=>i<maxM?v:null),
+          borderColor: '#e8401c', borderWidth: 2.5, pointRadius: 4,
+          pointBackgroundColor: '#e8401c', fill: true,
+          backgroundColor: 'rgba(232,64,28,.08)', tension: 0.4 },
+        { label: '목표', data: d.profit.목표,
+          borderColor: '#388bfd', borderWidth: 1.5, borderDash: [5,3],
+          pointRadius: 2, fill: false, tension: 0.4 },
+        { label: '전년', data: d.profit.전년,
+          borderColor: '#8b949e', borderWidth: 1.5, borderDash: [3,3],
+          pointRadius: 2, fill: false, tension: 0.4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8b949e', font: CHART_DEFAULTS.font, boxWidth: 12 } },
+        tooltip: { backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#8b949e',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw,2)}억` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(48,54,61,.5)' }, ticks: { color: '#8b949e', font: CHART_DEFAULTS.font } },
+        y: { grid: { color: 'rgba(48,54,61,.5)' }, ticks: { color: '#8b949e', font: CHART_DEFAULTS.font,
+          callback: v => v+'억' } }
+      }
+    }
+  });
+}
+
+function renderChartDivision() {
+  destroyChart('division');
+  const m = state.month - 1;
+  const teams = Object.keys(state.data.teams);
+
+  charts.division = new Chart(document.getElementById('chartDivision'), {
+    type: 'bar',
+    data: {
+      labels: teams.map(t => t.replace('팀','')),
+      datasets: [
+        { label: '실적', data: teams.map(t => state.data.teams[t].실적[m]),
+          backgroundColor: 'rgba(232,64,28,.75)', borderRadius: 4 },
+        { label: '목표', data: teams.map(t => state.data.teams[t].목표[m]),
+          backgroundColor: 'rgba(56,139,253,.4)', borderRadius: 4 },
+        { label: '전년', data: teams.map(t => state.data.teams[t].전년[m]),
+          backgroundColor: 'rgba(139,148,158,.3)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8b949e', font: CHART_DEFAULTS.font, boxWidth: 10 } },
+        tooltip: { backgroundColor: '#161b22', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#8b949e',
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw,2)}억` } }
+      },
+      scales: {
+        x: { grid: { display:false }, ticks: { color: '#8b949e', font: { ...CHART_DEFAULTS.font, size: 11 } } },
+        y: { grid: { color: 'rgba(48,54,61,.5)' }, ticks: { color: '#8b949e', font: CHART_DEFAULTS.font,
+          callback: v => v+'억' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 부문 카드
+// ═══════════════════════════════════════════════════════════════
+function renderDivision() {
+  const m = state.month - 1;
+  const d = state.data;
+  document.getElementById('divSectionSub').textContent = `${state.month}월 실적`;
+
+  // 누적
+  const offRevCum = d.offline.rev.실적.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const offRevTgt = d.offline.rev.목표.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const offPDCum  = d.offline.profitDirect.실적.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const offPDTgt  = d.offline.profitDirect.목표.slice(0, m+1).reduce((a,b)=>a+b, 0);
+
+  const salRevCum = d.sales.rev.실적.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const salRevTgt = d.sales.rev.목표.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const salPDCum  = d.sales.profitDirect.실적.slice(0, m+1).reduce((a,b)=>a+b, 0);
+  const salPDTgt  = d.sales.profitDirect.목표.slice(0, m+1).reduce((a,b)=>a+b, 0);
+
+  function divCard(name, tag, tagBg, rev실, rev목, pd실, pd목) {
+    const revR = rev목 ? rev실/rev목 : 0;
+    const pdR  = pd목 ? pd실/pd목 : 0;
+    const barColor = revR >= 1 ? 'var(--green)' : revR >= 0.8 ? 'var(--blue)' : 'var(--accent)';
+    return `
+    <div class="div-card">
+      <div class="div-card-hdr">
+        <div>
+          <div class="div-name">${name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">누적 ${state.month}개월</div>
+        </div>
+        <span class="div-tag" style="background:${tagBg};color:#fff">${tag}</span>
+      </div>
+      <div class="div-metrics">
+        <div class="div-metric">
+          <div class="div-metric-label">누적 매출</div>
+          <div class="div-metric-value">${fmt(rev실, 0)}억</div>
+          <div class="progress-wrap" style="margin-top:6px">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${Math.min(revR*100,100)}%;background:${barColor}"></div>
+            </div>
+            <div class="progress-pct" style="color:${barColor}">${(revR*100).toFixed(1)}%</div>
+          </div>
+          <div class="div-metric-sub" style="color:var(--muted)">목표 ${fmt(rev목,0)}억</div>
+        </div>
+        <div class="div-metric">
+          <div class="div-metric-label">직접 세전이익</div>
+          <div class="div-metric-value" style="color:${pd실>=0?'var(--green)':'var(--red)'}">${fmt(pd실, 1)}억</div>
+          <div class="progress-wrap" style="margin-top:6px">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${Math.min(Math.max(pdR*100,0),100)}%;background:${pd실>=pd목?'var(--green)':'var(--accent)'}"></div>
+            </div>
+            <div class="progress-pct" style="color:${pd실>=pd목?'var(--green)':'var(--red)'}">${(pdR*100).toFixed(1)}%</div>
+          </div>
+          <div class="div-metric-sub" style="color:var(--muted)">목표 ${fmt(pd목,1)}억</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('divisionGrid').innerHTML =
+    divCard('OFFLINE 부문', 'OFFLINE', '#1A5276', offRevCum, offRevTgt, offPDCum, offPDTgt) +
+    divCard('SALES 부문', 'SALES', '#1E6B3A', salRevCum, salRevTgt, salPDCum, salPDTgt);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 팀별 테이블
+// ═══════════════════════════════════════════════════════════════
+function renderTeamTable() {
+  const m = state.month - 1;
+  const teams = state.data.teams;
+
+  // 누적 합산
+  const rows = Object.entries(teams).map(([name, t]) => {
+    const 실적 = t.실적.slice(0, m+1).reduce((a,b)=>a+b, 0);
+    const 목표 = t.목표.slice(0, m+1).reduce((a,b)=>a+b, 0);
+    const 전년 = t.전년.slice(0, m+1).reduce((a,b)=>a+b, 0);
+    const rate = 목표 !== 0 ? 실적/목표 : null;
+    const yoy  = 전년 !== 0 ? 실적/전년 : null;
+    return { name, 실적, 목표, 전년, rate, yoy };
+  });
+
+  document.getElementById('teamTbody').innerHTML = rows.map(r => {
+    const rateColor = r.rate >= 1 ? 'var(--green)' : r.rate >= 0.8 ? 'var(--blue)' : 'var(--red)';
+    const ratePct = r.rate !== null ? (r.rate*100).toFixed(1)+'%' : '—';
+    const yoyPct  = r.yoy  !== null ? (r.yoy*100).toFixed(1)+'%' : '—';
+    const yoyColor = r.yoy >= 1 ? 'var(--green)' : 'var(--red)';
+
+    const progressW = r.rate !== null ? Math.min(Math.max(r.rate*100, 0), 100) : 0;
+    const barColor  = r.rate >= 1 ? '#3fb950' : r.rate >= 0.8 ? '#388bfd' : '#e8401c';
+
+    return `<tr>
+      <td>${r.name}</td>
+      <td class="cell-num ${r.실적>=0?'cell-pos':'cell-neg'}">${fmt(r.실적, 2)}</td>
+      <td class="cell-num">${fmt(r.목표, 2)}</td>
+      <td class="cell-num ${r.전년>=0?'cell-pos':'cell-neg'}">${fmt(r.전년, 2)}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:${progressW}%;background:${barColor}"></div>
+          </div>
+          <div class="progress-pct" style="color:${barColor}">${ratePct}</div>
+        </div>
+      </td>
+      <td class="cell-num" style="color:${yoyColor}">${yoyPct}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 전체 렌더
+// ═══════════════════════════════════════════════════════════════
+// ── DB 운영 현황 렌더 ────────────────────────────────────────
+function renderDB() {
+  const monthKey = `2026-${String(state.month).padStart(2,'0')}`;
+
+  // Apps Script가 날짜를 Date객체 or 문자열로 다양하게 반환 → 통일
+  function matchMonth(val) {
+    if (!val) return false;
+    if (typeof val === 'string') return val.startsWith(monthKey);
+    if (val instanceof Date) {
+      const y = val.getFullYear();
+      const m = String(val.getMonth()+1).padStart(2,'0');
+      return `${y}-${m}` === monthKey;
+    }
+    return String(val).startsWith(monthKey);
+  }
+
+  function n억(v) { return typeof v==='number' ? (v/1e8).toFixed(1)+'억' : '—'; }
+  function n만(v) { return typeof v==='number' ? Math.round(v/1e4).toLocaleString()+'만' : '—'; }
+  function diffClass(v) { return v>0?'ops-diff-up':v<0?'ops-diff-dn':''; }
+  function diffSign(v, unit='') {
+    if(!v && v!==0) return '—';
+    return (v>0?'+':'')+v.toLocaleString()+unit;
+  }
+
+  // ── 경매 운영지표 ──
+  const auctionRow = (state.dbAuction||[]).find(r => matchMonth(r[0]));
+  const auctionEl  = document.getElementById('opsAuctionGrid');
+  if (auctionRow) {
+    // col: 0=연월 1=경매횟수_전년 2=경매횟수_당월 3=출품_전년 4=출품_당월
+    //       5=낙찰대수_전년 6=낙찰대수_당월 7=낙찰률_전년 8=낙찰률_당월 9=주당출품
+    // 헤더행이 섞일 수 있으므로 숫자인 것만 사용
+    const n = (v,d=0) => typeof v==='number' ? v : d;
+    const items = [
+      { label:'경매 횟수',
+        val:  n(auctionRow[2])+'회',
+        prev: n(auctionRow[1])+'회',
+        diff: n(auctionRow[2])-n(auctionRow[1]), unit:'회', isUp: true },
+      { label:'출품 대수',
+        val:  n(auctionRow[4]).toLocaleString()+'대',
+        prev: n(auctionRow[3]).toLocaleString()+'대',
+        diff: n(auctionRow[4])-n(auctionRow[3]), unit:'대', isUp: true },
+      { label:'낙찰 대수',
+        val:  n(auctionRow[6]).toLocaleString()+'대',
+        prev: n(auctionRow[5]).toLocaleString()+'대',
+        diff: n(auctionRow[6])-n(auctionRow[5]), unit:'대', isUp: true },
+      { label:'낙찰률',
+        val:  (n(auctionRow[8])*100).toFixed(1)+'%',
+        prev: (n(auctionRow[7])*100).toFixed(1)+'%',
+        diff: (n(auctionRow[8])-n(auctionRow[7]))*100, unit:'%p', isUp: true },
+    ];
+    auctionEl.innerHTML = items.map(it => {
+      const d = it.diff;
+      const dCls = it.isUp ? (d>0?'up':d<0?'down':'neutral') : (d<0?'up':d>0?'down':'neutral');
+      const dSign = d>0?'▲':'▼';
+      const dFmt = typeof it.diff==='number'
+        ? `${dSign} ${Math.abs(it.unit==='%p'?+d.toFixed(1):Math.round(d)).toLocaleString()}${it.unit} (전년비)`
+        : '';
+      return `<div class="ops-auction-item">
+        <div class="ops-auction-label">${it.label}</div>
+        <div class="ops-auction-value">${it.val}</div>
+        <div class="ops-auction-prev">전년동월 <span>${it.prev}</span></div>
+        <div class="ops-auction-diff ${dCls}">${dFmt}</div>
+      </div>`;
+    }).join('');
+  } else {
+    auctionEl.innerHTML = '<div class="ops-empty">구글시트 db_auction에 데이터를 입력하세요</div>';
+  }
+
+  // ── 인원현황 ──
+  const staffRow = (state.dbStaff||[]).find(r => matchMonth(r[0]));
+  const staffEl  = document.getElementById('opsStaff');
+  if (staffRow && staffRow[1]) {
+    staffEl.innerHTML = `
+      <div class="ops-big-val">${staffRow[1]||'—'}<span style="font-size:16px;font-weight:400;color:var(--muted)">명</span></div>
+      <div class="ops-big-sub">전체 인원</div>
+      <div class="ops-kv"><span class="ops-key">OFFLINE부문</span><span class="ops-val">${staffRow[2]||'—'}명</span></div>
+      <div class="ops-kv"><span class="ops-key">SALES부문</span><span class="ops-val">${staffRow[3]||'—'}명</span></div>
+      <div class="ops-kv"><span class="ops-key">공통</span><span class="ops-val">${staffRow[4]||'—'}명</span></div>`;
+  } else {
+    staffEl.innerHTML = '<div class="ops-empty">구글시트 db_staff에 데이터를 입력하세요</div>';
+  }
+
+  // ── 기말 가용현금 ──
+  const cashRow = (state.dbCash||[]).find(r => matchMonth(r[0]));
+  const cashEl  = document.getElementById('opsCash');
+  if (cashRow && cashRow[1]) {
+    const amt  = cashRow[1];
+    const diff = cashRow[2] || 0;
+    const rate = cashRow[3] ? (cashRow[3]*100).toFixed(1)+'%' : '—';
+    const dCls = diff>0?'ops-diff-up':'ops-diff-dn';
+    cashEl.innerHTML = `
+      <div class="ops-big-val">${n억(amt)}</div>
+      <div class="ops-big-sub">기말 가용현금</div>
+      <div class="ops-kv"><span class="ops-key">전월대비</span>
+        <span class="ops-val ${dCls}">${diffSign(+(diff/1e8).toFixed(1),'억')} (${rate})</span></div>
+      <div class="ops-kv"><span class="ops-key">메모</span>
+        <span class="ops-val" style="font-size:11px;color:var(--muted);text-align:right;max-width:60%">${cashRow[4]||'—'}</span></div>`;
+  } else {
+    cashEl.innerHTML = '<div class="ops-empty">구글시트 db_cash에 데이터를 입력하세요</div>';
+  }
+
+  // ── 재고현황 ──
+  const invRow = (state.dbInventory||[]).find(r => matchMonth(r[0]));
+  const invEl  = document.getElementById('opsInventory');
+  if (invRow && invRow[1]) {
+    const qty  = invRow[1];
+    const amt  = invRow[2];
+    const dQty = invRow[3] || 0;
+    const dAmt = invRow[4] || 0;
+    const avgU = invRow[5] ? n만(invRow[5]) : '—';
+    const qCls = dQty>0?'ops-diff-up':'ops-diff-dn';
+    const aCls = dAmt>0?'ops-diff-up':'ops-diff-dn';
+    invEl.innerHTML = `
+      <div class="ops-big-val">${qty.toLocaleString()}<span style="font-size:16px;font-weight:400;color:var(--muted)">대</span></div>
+      <div class="ops-big-sub">${n억(amt)} · 평균단가 ${avgU}</div>
+      <div class="ops-kv"><span class="ops-key">전월대비(대수)</span>
+        <span class="ops-val ${qCls}">${diffSign(dQty,'대')}</span></div>
+      <div class="ops-kv"><span class="ops-key">전월대비(금액)</span>
+        <span class="ops-val ${aCls}">${diffSign(+(dAmt/1e8).toFixed(1),'억')}</span></div>`;
+  } else {
+    invEl.innerHTML = '<div class="ops-empty">구글시트 db_inventory에 데이터를 입력하세요</div>';
+  }
+
+  // ── 당월 특이사항 ──
+  const memoData = (state.dbMemo||[]).filter(r => matchMonth(r[0]));
+  const memoEl   = document.getElementById('opsMemo');
+  if (memoData.length > 0) {
+    memoEl.innerHTML = memoData.map(r => `
+      <div class="ops-memo-item">
+        <div class="ops-memo-badges">
+          <span class="ops-memo-cat ${r[1]||''}">${r[1]||'기타'}</span>
+          <span class="ops-memo-priority ${r[3]||''}">${r[3]||''}</span>
+        </div>
+        <div class="ops-memo-txt">${r[2]||''}</div>
+        <div class="ops-memo-dept">${r[4]||''}</div>
+      </div>`).join('');
+  } else {
+    memoEl.innerHTML = '<div class="ops-empty">구글시트 db_memo에 데이터를 입력하세요</div>';
+  }
+}
+
+function renderAll() {
+  renderMonthTabs();
+  renderKPI();
+  renderChartRevenue();
+  renderChartDonut();
+  renderChartProfit();
+  renderChartDivision();
+  renderDivision();
+  renderTeamTable();
+  renderDB();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 구글시트 연동
+// ═══════════════════════════════════════════════════════════════
+function openModal() { document.getElementById('modalOverlay').classList.add('show'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+
+function showStatus(type, msg) {
+  const bar = document.getElementById('statusBar');
+  bar.className = `status-bar show ${type}`;
+  document.getElementById('statusMsg').textContent = msg;
+}
+function hideStatus() {
+  document.getElementById('statusBar').classList.remove('show');
+}
+
+async function connectSheets() {
+  closeModal();
+  showStatus('loading', '구글시트에서 데이터 로딩 중...');
+
+  try {
+    // Apps Script 프록시 방식 — CORS 완전 우회
+    const url = 'https://script.google.com/macros/s/AKfycby6mmnM9atVgdUnt0nIxTA8BSk0u_qOXMd0YvkIyDzTsNB2LahugRsLXyZpui1ptFKQ1g/exec';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Apps Script 요청 실패: ' + res.status);
+    const payload = await res.json();
+
+    // 다중 시트 객체 or 단일 배열 모두 처리
+    let summaryRows, dbStaff, dbCash, dbInventory, dbMemo, dbAuction;
+    if (payload && !Array.isArray(payload) && payload.summary) {
+      summaryRows = payload.summary;
+      dbStaff     = payload.db_staff     || [];
+      dbCash      = payload.db_cash      || [];
+      dbInventory = payload.db_inventory || [];
+      dbMemo      = payload.db_memo      || [];
+      dbAuction   = payload.db_auction   || [];
+    } else if (Array.isArray(payload)) {
+      summaryRows = payload;
+      dbStaff = []; dbCash = []; dbInventory = []; dbMemo = []; dbAuction = [];
+    } else {
+      throw new Error('데이터 형식 오류. Apps Script 코드를 확인하세요.');
+    }
+
+    if (!summaryRows || !summaryRows.length) throw new Error('summary 데이터가 없습니다.');
+    console.log('summary:', summaryRows.length+'행', '| auction:', dbAuction.length, '| staff:', dbStaff.length);
+
+    const parsed = parseGSheetRows(summaryRows);
+    if (!parsed) throw new Error('데이터 파싱 실패.');
+
+    state.data      = parsed.data;
+    state.maxMonth  = parsed.maxMonth;
+    state.dbStaff   = dbStaff;
+    state.dbCash    = dbCash;
+    state.dbInventory = dbInventory;
+    state.dbMemo    = dbMemo;
+    state.dbAuction = dbAuction;
+    state.sheetId   = 'apps-script';
+    state.connected = true;
+    state.month     = Math.min(state.month, state.maxMonth);
+
+    document.getElementById('btnConnect').textContent = '🔄 새로고침';
+    document.getElementById('btnConnect').classList.add('connected');
+    document.getElementById('liveDot').style.background = 'var(--green)';
+    document.getElementById('dataSource').textContent = '구글시트 실시간';
+    document.getElementById('lastUpdate').textContent = '마지막 업데이트: ' + new Date().toLocaleString('ko-KR');
+
+    renderAll();
+    showStatus('success', `연결 완료! ${parsed.maxMonth}개월 데이터 로드됨.`);
+    setTimeout(hideStatus, 3000);
+  } catch(e) {
+    showStatus('error', '❌ ' + e.message);
+    console.error(e);
+  }
+}
+
+// ── 행 데이터 파싱 ───────────────────────────────────────────
+// summary 시트 행 번호 매핑 (0-indexed, 엑셀 행-1)
+// 엑셀 행N → 인덱스 N-1
+const ROW = {
+  // 【1】 당해 실적
+  전사_매출액:      10,   // 엑셀 행11
+  전사_매출이익:    12,   // 엑셀 행13
+  전사_전체판관비:  18,   // 엑셀 행19  ← 판관비(전체)
+  전사_매출이익:    12,   // 행13
+  전사_직접세전:    17,   // 행18  ← (직접)세전이익
+  전사_전체세전:    22,   // 행23  ← 세전이익(전체)
+  offline_매출액:   25,   // 행26
+  offline_직접세전: 32,   // 행33
+  sales_매출액:     40,   // 행41
+  sales_직접세전:   47,   // 행48
+  // 【2】 목표
+  전사_매출액_목표:      58,   // 행59
+  전사_전체세전_목표:    61,   // 행62
+  offline_매출액_목표:   64,   // 행65
+  offline_전체세전_목표: 67,   // 행68
+  sales_매출액_목표:     70,   // 행71
+  sales_전체세전_목표:   73,   // 행74
+  // 【3】 전년
+  전사_매출액_전년:      79,   // 행80
+  전사_전체세전_전년:    82,   // 행83
+  offline_매출액_전년:   85,   // 행86
+  offline_전체세전_전년: 88,   // 행89
+  sales_매출액_전년:     91,   // 행92
+  sales_전체세전_전년:   94,   // 행95
+  offline_gp_전년:       88,   // 행89 (OFFLINE 매출이익 전년 = 행88+1)
+  sales_gp_전년:         94,   // 행95
+  // 【4】 팀별 직접 세전이익
+  auction_실적:    100,  // 행101
+  auction_목표:    101,  // 행102
+  auction_전년:    102,  // 행103
+  출품_실적:       105,  // 행106
+  출품_목표:       106,  // 행107
+  출품_전년:       107,  // 행108
+  딜러_실적:       110,  // 행111
+  딜러_목표:       111,  // 행112
+  딜러_전년:       112,  // 행113
+  직영_실적:       115,  // 행116
+  직영_목표:       116,  // 행117
+  직영_전년:       117,  // 행118
+  제휴_실적:       120,  // 행121
+  제휴_목표:       121,  // 행122
+  제휴_전년:       122,  // 행123
+  매입_실적:       125,  // 행126
+  매입_목표:       126,  // 행127
+  매입_전년:       127,  // 행128
+};
+
+function parseGSheetRows(rows) {
+  try {
+    console.log(`gviz 파싱: ${rows.length}행 로드`);
+
+    // 값 추출 헬퍼: 행 인덱스, 열 인덱스(D=3~O=14, P=15)
+    // Apps Script getValues(): A=0, B=1, C=2, D=3(01월)... O=14(12월), P=15(연간)
+    function getVal(rowIdx, colIdx) {
+      if (rowIdx >= rows.length) return 0;
+      const cell = rows[rowIdx][colIdx];
+      if (cell === null || cell === undefined || cell === '') return 0;
+      const n = typeof cell === 'number' ? cell : parseFloat(String(cell).replace(/,/g,''));
+      return isNaN(n) ? 0 : n / 1e8; // 원 → 억원
+    }
+
+    function getRow12(rowIdx) {
+      return Array.from({length:12}, (_, i) => getVal(rowIdx, 3 + i));
+    }
+
+    // maxMonth: 전사 매출액 실적에서 0이 아닌 마지막 월
+    const revActual12 = getRow12(ROW.전사_매출액);
+    let maxMonth = 0;
+    for (let i = 0; i < 12; i++) { if (revActual12[i] !== 0) maxMonth = i + 1; }
+    if (maxMonth === 0) maxMonth = 1;
+
+    // 연간합계 (P열=인덱스15)
+    const annRev실적  = getVal(ROW.전사_매출액, 15);
+    const annRev목표  = getVal(ROW.전사_매출액_목표, 15);
+    const annRev전년  = getVal(ROW.전사_매출액_전년, 15);
+    const annP실적    = getVal(ROW.전사_전체세전, 15);
+    const annP목표    = getVal(ROW.전사_전체세전_목표, 15);
+    const annP전년    = getVal(ROW.전사_전체세전_전년, 15);
+    const annPD실적   = getVal(ROW.전사_직접세전, 15);
+
+    // 추가 행
+    const offGP실적  = getRow12(27);   // 엑셀 행28 OFFLINE 매출이익
+    const offGP목표  = getRow12(64);   // 엑셀 행65 OFFLINE 매출이익 목표
+    const offGP전년  = getRow12(85);   // 엑셀 행86 OFFLINE 매출이익 전년
+    const salGP실적  = getRow12(42);   // 엑셀 행43 SALES 매출이익
+    const salGP목표  = getRow12(70);   // 엑셀 행71 SALES 매출이익 목표
+    const salGP전년  = getRow12(91);   // 엑셀 행92 SALES 매출이익 전년
+    const annGP실적  = getVal(12, 15); // 엑셀 행13 전사 매출이익 연간
+    const annGP목표  = getVal(58, 15); // 엑셀 행59 전사 매출이익 목표 연간 (없으면 행57 확인)
+    const offRev전년 = getRow12(85);   // 엑셀 행86
+    const salRev전년 = getRow12(91);   // 엑셀 행92
+
+    const data = {
+      months: ['01','02','03','04','05','06','07','08','09','10','11','12'],
+
+      rev: {
+        실적: getRow12(ROW.전사_매출액),
+        목표: getRow12(ROW.전사_매출액_목표),
+        전년: getRow12(ROW.전사_매출액_전년),
+      },
+      grossProfit: {
+        실적: getRow12(ROW.전사_매출이익),
+        목표: getRow12(58),
+        전년: getRow12(ROW.전사_매출액_전년 + 1),
+      },
+      sga: {
+        실적: getRow12(ROW.전사_전체판관비),
+        목표: getRow12(ROW.전사_전체판관비 + 39),  // 목표 판관비(전체) = 행58근처
+      },
+      profit: {
+        실적: getRow12(ROW.전사_전체세전),
+        목표: getRow12(ROW.전사_전체세전_목표),
+        전년: getRow12(ROW.전사_전체세전_전년),
+      },
+      profitDirect: {
+        실적: getRow12(ROW.전사_직접세전),
+        목표: getRow12(ROW.전사_직접세전),
+        전년: getRow12(ROW.전사_직접세전),
+      },
+
+      teams: {
+        'AUCTION팀':  { 실적: getRow12(ROW.auction_실적), 목표: getRow12(ROW.auction_목표), 전년: getRow12(ROW.auction_전년) },
+        '출품영업팀': { 실적: getRow12(ROW.출품_실적),    목표: getRow12(ROW.출품_목표),    전년: getRow12(ROW.출품_전년) },
+        '딜러운영팀': { 실적: getRow12(ROW.딜러_실적),    목표: getRow12(ROW.딜러_목표),    전년: getRow12(ROW.딜러_전년) },
+        '직영판매팀': { 실적: getRow12(ROW.직영_실적),    목표: getRow12(ROW.직영_목표),    전년: getRow12(ROW.직영_전년) },
+        '제휴영업팀': { 실적: getRow12(ROW.제휴_실적),    목표: getRow12(ROW.제휴_목표),    전년: getRow12(ROW.제휴_전년) },
+        '매입영업팀': { 실적: getRow12(ROW.매입_실적),    목표: getRow12(ROW.매입_목표),    전년: getRow12(ROW.매입_전년) },
+      },
+
+      offline: {
+        rev:  { 실적: getRow12(ROW.offline_매출액), 목표: getRow12(ROW.offline_매출액_목표),
+                전년: getRow12(ROW.offline_매출액_전년) },
+        gp:   { 실적: offGP실적, 목표: offGP목표, 전년: offGP전년 },
+        profitDirect: { 실적: getRow12(ROW.offline_직접세전), 목표: getRow12(ROW.offline_직접세전) },
+      },
+      sales: {
+        rev:  { 실적: getRow12(ROW.sales_매출액), 목표: getRow12(ROW.sales_매출액_목표),
+                전년: getRow12(ROW.sales_매출액_전년) },
+        gp:   { 실적: salGP실적, 목표: salGP목표, 전년: salGP전년 },
+        profitDirect: { 실적: getRow12(ROW.sales_직접세전), 목표: getRow12(ROW.sales_직접세전) },
+      },
+
+      annual: {
+        rev:     { 실적: annRev실적,  목표: annRev목표,  전년: annRev전년 },
+        gp:      { 실적: annGP실적,   목표: annGP목표,   전년: annGP실적 },
+        profit:  { 실적: annP실적,    목표: annP목표,    전년: annP전년 },
+        profitD: { 실적: annPD실적,   목표: annPD실적,   전년: annPD실적 },
+      }
+    };
+
+    // 이익률 — summary 마지막 2행 자동 감지 (수동 행 번호 의존 제거)
+    // 섹션7: "상품매출 이익률" / "경매매출 이익률" 행을 B열 텍스트로 찾기
+    let 상품이익률행 = -1, 경매이익률행 = -1;
+    for (let i = rows.length-1; i >= 130; i--) {
+      const b = String(rows[i][2]||'');
+      if (b.includes('상품매출 이익률') && 상품이익률행 < 0) 상품이익률행 = i;
+      if (b.includes('경매매출 이익률') && 경매이익률행 < 0) 경매이익률행 = i;
+      if (상품이익률행 >= 0 && 경매이익률행 >= 0) break;
+    }
+    console.log('이익률 행:', 상품이익률행, 경매이익률행);
+    data.margins = {
+      상품:   상품이익률행 >= 0 ? getRow12(상품이익률행) : new Array(12).fill(0),
+      경매:   경매이익률행 >= 0 ? getRow12(경매이익률행) : new Array(12).fill(0),
+      상품LY: 상품이익률행 >= 0 ? getRow12(상품이익률행) : new Array(12).fill(0),
+      경매LY: 경매이익률행 >= 0 ? getRow12(경매이익률행) : new Array(12).fill(0),
+    };
+
+    console.log(`maxMonth: ${maxMonth}, 전사 매출 1월: ${data.rev.실적[0]}억, 상품마진: ${(data.margins.상품[0]*100).toFixed(1)}%`);
+    return { data, maxMonth };
+  } catch(e) {
+    console.error('파싱 오류:', e);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 초기 실행
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderAll();  // 샘플 데이터로 먼저 렌더
+  connectSheets();  // 구글시트 자동 연결
+});
+
+// ESC로 모달 닫기
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
