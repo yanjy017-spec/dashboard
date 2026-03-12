@@ -1275,7 +1275,7 @@ async function runAIAnalysis(forceNew) {
   try {
     const proxyUrl = SCRIPT_URL
       + '?action=aiAnalysis'
-      + '&apiKey=' + encodeURIComponent('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')
+      + '&apiKey=' + encodeURIComponent('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')
       + '&prompt=' + encodeURIComponent(prompt);
     const apiData = await fetchJSONP(proxyUrl);
     const text = apiData.text || apiData.content?.[0]?.text || '분석 결과를 가져오지 못했습니다.';
