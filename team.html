@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>팀별 상세 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d1117; --surface:#161b22; --surface2:#21262d; --border:#30363d;
+  --text:#e6edf3; --muted:#8b949e; --accent:#e8401c;
+  --blue:#388bfd; --green:#3fb950; --red:#f85149; --yellow:#d29922; --purple:#a371f7;
+  --font:'Noto Sans KR',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* 네비 */
+nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;gap:0;}
+.nav-logo{font-weight:700;font-size:14px;color:var(--accent);margin-right:24px;white-space:nowrap;}
+.nav-links{display:flex;gap:2px;}
+.nav-link{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;transition:all .15s;}
+.nav-link:hover{color:var(--text);background:var(--surface2);}
+.nav-link.active{color:var(--text);background:var(--surface2);}
+
+/* 컨테이너 */
+.container{max-width:1200px;margin:0 auto;padding:28px 24px 60px;}
+
+/* 팀 탭 */
+.team-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+.team-tab{
+  padding:8px 18px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:var(--font);
+}
+.team-tab:hover{border-color:var(--blue);color:var(--blue);}
+.team-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* 페이지 헤더 */
+.page-header{
+  background:linear-gradient(135deg,#1a1f2e 0%,#161b22 100%);
+  border:1px solid var(--border);border-radius:12px;
+  padding:20px 28px;margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.page-title h1{font-size:20px;font-weight:700;}
+.page-title .sub{font-size:13px;color:var(--muted);margin-top:4px;}
+.month-filter{display:flex;gap:5px;flex-wrap:wrap;}
+.month-btn{
+  width:34px;height:34px;border-radius:7px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;font-family:var(--font);
+}
+.month-btn:hover{border-color:var(--blue);color:var(--blue);}
+.month-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.month-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* KPI 카드 */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.kpi-card .kpi-label{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:8px;}
+.kpi-card .kpi-value{font-size:20px;font-weight:700;font-family:var(--mono);}
+.kpi-card .kpi-meta{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;font-family:var(--mono);}
+.badge.up{background:rgba(63,185,80,.15);color:var(--green);}
+.badge.down{background:rgba(248,81,73,.15);color:var(--red);}
+.badge.neu{background:rgba(139,148,158,.12);color:var(--muted);}
+
+/* 차트 */
+.chart-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.chart-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.chart-wrap{height:220px;position:relative;}
+
+/* PL 테이블 */
+.section{margin-bottom:20px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.pl-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.pl-table{width:100%;border-collapse:collapse;font-size:13px;}
+.pl-table th{background:var(--surface2);padding:9px 14px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap;}
+.pl-table th:first-child{text-align:left;min-width:200px;}
+.pl-table td{padding:7px 14px;text-align:right;font-family:var(--mono);font-size:12px;border-bottom:1px solid rgba(48,54,61,.5);}
+.pl-table td:first-child{text-align:left;font-family:var(--font);}
+.pl-table tr:last-child td{border-bottom:none;}
+.row-header td{background:rgba(30,36,44,.6);}
+.row-header td:first-child{font-weight:700;font-size:13px;color:var(--text);font-family:var(--font);}
+.row-total td{background:rgba(56,139,253,.06);border-top:1px solid rgba(56,139,253,.2)!important;border-bottom:1px solid rgba(56,139,253,.2)!important;}
+.row-total td:first-child{font-weight:700;color:var(--blue);font-family:var(--font);font-size:13px;}
+.row-total.profit td:first-child{color:var(--green);}
+.row-total.loss td:first-child{color:var(--red);}
+.row-sub td:first-child{font-weight:600;color:var(--text);padding-left:20px;}
+.row-detail td:first-child{color:var(--muted);padding-left:36px;font-size:12px;}
+.row-detail td{color:var(--muted);}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.neu-txt{color:var(--muted);}
+
+/* 상태바 */
+.status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;margin-bottom:20px;font-size:12px;font-weight:500;}
+.status-bar.loading{background:rgba(56,139,253,.1);border:1px solid rgba(56,139,253,.2);color:var(--blue);}
+.status-bar.error{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.2);color:var(--red);}
+.status-bar.ok{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.2);color:var(--green);}
+.spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* 구분선 */
+.divider{height:1px;background:var(--border);margin:4px 0;}
+</style>
+</head>
+<body>
+<nav>
+  <span class="nav-logo">● 매출현황</span>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">대시보드</a>
+    <a href="pl.html"    class="nav-link">손익보고서</a>
+    <a href="team.html"  class="nav-link active">팀별상세</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- 팀 탭 -->
+  <div class="team-tabs" id="teamTabs"></div>
+
+  <!-- 상태바 -->
+  <div class="status-bar loading" id="statusBar">
+    <div class="spinner"></div><span>구글시트에서 데이터 로딩 중...</span>
+  </div>
+
+  <!-- 페이지 헤더 -->
+  <div class="page-header">
+    <div class="page-title">
+      <h1 id="teamTitle">—</h1>
+      <div class="sub" id="teamSubtitle">2026년 — 월 기준</div>
+    </div>
+    <div class="month-filter" id="monthFilter"></div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-row" id="kpiRow">
+    <div class="kpi-card"><div class="kpi-label">매출액</div><div class="kpi-value">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">매출이익</div><div class="kpi-value">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">(직접) 판관비</div><div class="kpi-value">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">(직접) 세전이익</div><div class="kpi-value">—</div></div>
+  </div>
+
+  <!-- 월별 추이 차트 -->
+  <div class="chart-section">
+    <div class="chart-header">
+      <span class="chart-title">월별 추이</span>
+      <span style="font-size:11px;color:var(--muted)">단위: 억원</span>
+    </div>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+  </div>
+
+  <!-- 직접비 PL -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">손익계산서 (직접비 기준)</span>
+      <span style="font-size:11px;color:var(--muted)">단위: 백만원</span>
+    </div>
+    <div class="pl-table-wrap">
+      <table class="pl-table">
+        <thead><tr>
+          <th>계정과목</th><th>전월</th><th>당월 실적</th><th>당월 목표</th>
+          <th>달성률</th><th>전년동월</th><th>전년대비</th><th>MoM</th>
+        </tr></thead>
+        <tbody id="plDirectBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 전체비 PL -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">손익계산서 (전체비 기준)</span>
+      <span style="font-size:11px;color:var(--muted)">단위: 백만원</span>
+    </div>
+    <div class="pl-table-wrap">
+      <table class="pl-table">
+        <thead><tr>
+          <th>계정과목</th><th>전월</th><th>당월 실적</th><th>당월 목표</th>
+          <th>달성률</th><th>전년동월</th><th>전년대비</th><th>MoM</th>
+        </tr></thead>
+        <tbody id="plFullBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEp0T7XH-Wht9pqMaa3dbhhrYsyVRdX33LSI0GyQ3QwLvX5JI44Kr9FKKapuyRQP5Rsw/exec';
+
+const TEAMS = [
+  {key:'AUCTION',  label:'AUCTION팀',   colOffset:2},
+  {key:'출품영업', label:'출품영업팀',  colOffset:3},
+  {key:'딜러운영', label:'딜러운영팀',  colOffset:5},
+  {key:'직영판매', label:'직영판매팀',  colOffset:6},
+  {key:'제휴영업', label:'제휴영업팀',  colOffset:7},
+  {key:'매입영업', label:'매입영업팀',  colOffset:8},
+];
+
+// 행번호 기반 계정 정의 (0-indexed = 엑셀행 - 1)
+const ACC_DIRECT = [
+  {name:'매출액',              type:'header', row:8},
+  {name:'상품매출',            type:'sub',    row:9},
+  {name:'경매매출',            type:'sub',    row:14},
+  {name:'매출원가',            type:'header', row:22},
+  {name:'(2)상품매출원가',     type:'sub',    row:23},
+  {name:'(4)경매원가',         type:'sub',    row:30},
+  {name:'매출이익',            type:'total',  row:'GROSS_D'},
+  {name:'(직접) 판관비',       type:'header', row:40},
+  {name:'(직접) 영업이익',     type:'total',  row:216},
+  {name:'(직접) 세전이익',     type:'total',  row:258},
+];
+
+const ACC_FULL = [
+  {name:'판관비 (전체)',        type:'header', row:260},
+  {name:'영업이익 (전체)',      type:'total',  row:436},
+  {name:'영업외수익 (전체)',    type:'header', row:437},
+  {name:'영업외비용 (전체)',    type:'header', row:455},
+  {name:'세전이익 (전체)',      type:'total',  row:478},
+];
+
+// 상태
+let state = { team: 'AUCTION', month: 2, maxMonth: 2, raw: null, tgt: null, ly: null };
+let trendChart = null;
+
+// JSONP
+function fetchJSONP(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const s = document.createElement('script');
+    const timer = setTimeout(() => { delete window[cb]; s.remove(); reject(new Error('timeout')); }, 30000);
+    window[cb] = d => { clearTimeout(timer); delete window[cb]; s.remove(); resolve(d); };
+    s.onerror = () => { clearTimeout(timer); delete window[cb]; reject(new Error('JSONP error')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+// 숫자 포맷
+const fmt  = v => v == null ? '—' : Math.round(v/1e6).toLocaleString();
+const fmtA = v => v == null ? '—' : (v/1e8).toFixed(1) + '억';
+const pct  = (a,b) => (!b) ? '—' : (a/b*100).toFixed(1) + '%';
+const mom  = (a,b) => {
+  if (b == null || !b) return {txt:'—', cls:'neu-txt'};
+  const r = (a-b)/Math.abs(b)*100;
+  if (Math.abs(r) < 0.05) return {txt:'±0%', cls:'neu-txt'};
+  return r > 0 ? {txt:'▲'+r.toFixed(1)+'%', cls:'pos'} : {txt:'▼'+Math.abs(r).toFixed(1)+'%', cls:'neg'};
+};
+
+// 팀 컬럼 오프셋
+function teamColOffset(teamKey) {
+  return TEAMS.find(t => t.key === teamKey)?.colOffset || 0;
+}
+
+// 값 추출
+function getVal(rows, rowIdx, m, teamOffset) {
+  if (!rows || rowIdx >= rows.length) return 0;
+  const colIdx = 11 + 9*(m-1) + teamOffset;
+  const v = rows[rowIdx][colIdx];
+  return typeof v === 'number' ? v : 0;
+}
+
+// 팀 탭 렌더
+function renderTeamTabs() {
+  const el = document.getElementById('teamTabs');
+  el.innerHTML = TEAMS.map(t =>
+    `<button class="team-tab${t.key===state.team?' active':''}" onclick="selectTeam('${t.key}')">${t.label}</button>`
+  ).join('');
+}
+
+// 월 필터 렌더
+function renderMonthFilter() {
+  const el = document.getElementById('monthFilter');
+  el.innerHTML = '';
+  for (let m = 1; m <= 12; m++) {
+    const btn = document.createElement('button');
+    btn.className = 'month-btn' + (m === state.month ? ' active' : '');
+    btn.textContent = m + '월';
+    if (m > state.maxMonth) btn.disabled = true;
+    btn.onclick = () => { state.month = m; renderAll(); };
+    el.appendChild(btn);
+  }
+}
+
+// KPI 렌더
+function renderKPI() {
+  const { month, raw, tgt, ly, team } = state;
+  const tOff = teamColOffset(team);
+  const prev = month > 1 ? month - 1 : null;
+
+  const rev_a = getVal(raw, 8, month, tOff);
+  const rev_t = getVal(tgt, 8, month, tOff);
+  const rev_l = getVal(ly,  8, month, tOff);
+  const rev_p = prev ? getVal(raw, 8, prev, tOff) : null;
+
+  const cogs_a = getVal(raw, 22, month, tOff);
+  const cogs_t = getVal(tgt, 22, month, tOff);
+  const cogs_l = getVal(ly,  22, month, tOff);
+  const cogs_p = prev ? getVal(raw, 22, prev, tOff) : null;
+
+  const gross_a = rev_a - cogs_a;
+  const gross_t = rev_t - cogs_t;
+
+  const sg_a = getVal(raw, 40, month, tOff);
+  const sg_p = prev ? getVal(raw, 40, prev, tOff) : null;
+
+  const net_a = getVal(raw, 258, month, tOff);
+  const net_t = getVal(tgt, 258, month, tOff);
+  const net_l = getVal(ly,  258, month, tOff);
+  const net_p = prev ? getVal(raw, 258, prev, tOff) : null;
+
+  const cards = [
+    { label:'매출액', val:fmtA(rev_a), achv:pct(rev_a,rev_t), m:mom(rev_a,rev_p), ly:fmtA(rev_l) },
+    { label:'매출이익', val:fmtA(gross_a), achv:pct(gross_a,gross_t), m:null, ly:null },
+    { label:'(직접) 판관비', val:fmtA(sg_a), achv:null, m:mom(sg_a,sg_p), ly:null },
+    { label:'(직접) 세전이익', val:fmtA(net_a), achv:pct(net_a,net_t), m:mom(net_a,net_p), ly:fmtA(net_l) },
+  ];
+
+  document.getElementById('kpiRow').innerHTML = cards.map(c => {
+    const achvPct = c.achv ? parseFloat(c.achv) : null;
+    const ab = c.achv ? `<span class="badge ${achvPct>=100?'up':'down'}">${c.achv}</span>` : '';
+    const mb = c.m ? `<span class="badge ${c.m.cls==='pos'?'up':c.m.cls==='neg'?'down':'neu'}">${c.m.txt}</span>` : '';
+    const lb = c.ly ? `<span style="font-size:11px;color:var(--muted)">전년 ${c.ly}</span>` : '';
+    return `<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.val}</div><div class="kpi-meta">${ab}${mb}${lb}</div></div>`;
+  }).join('');
+}
+
+// 트렌드 차트 렌더
+function renderChart() {
+  const { raw, tgt, ly, team, maxMonth } = state;
+  const tOff = teamColOffset(team);
+  const labels = [], rev=[], revT=[], net=[], netT=[];
+  for (let m = 1; m <= maxMonth; m++) {
+    labels.push(m+'월');
+    rev.push(+(getVal(raw,8,m,tOff)/1e8).toFixed(2));
+    revT.push(+(getVal(tgt,8,m,tOff)/1e8).toFixed(2));
+    net.push(+(getVal(raw,258,m,tOff)/1e8).toFixed(2));
+    netT.push(+(getVal(tgt,258,m,tOff)/1e8).toFixed(2));
+  }
+
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'매출 실적', data:rev,  backgroundColor:'rgba(56,139,253,.55)', borderColor:'#388bfd', borderWidth:1, borderRadius:4, yAxisID:'y', order:2 },
+        { label:'매출 목표', data:revT, type:'line', borderColor:'rgba(56,139,253,.4)', borderDash:[5,4], pointRadius:3, fill:false, yAxisID:'y', order:1 },
+        { label:'세전이익 실적', data:net,  type:'line', borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,.15)', pointBackgroundColor:'#3fb950', pointRadius:5, fill:true, yAxisID:'y2', order:0 },
+        { label:'세전이익 목표', data:netT, type:'line', borderColor:'rgba(63,185,80,.4)', borderDash:[5,4], pointRadius:3, fill:false, yAxisID:'y2', order:0 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{labels:{color:'#8b949e',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}억`}}
+      },
+      scales: {
+        x: {ticks:{color:'#8b949e',font:{size:11}}, grid:{color:'rgba(48,54,61,.5)'}},
+        y: {position:'left',  ticks:{color:'#388bfd',font:{size:11},callback:v=>v+'억'}, grid:{color:'rgba(48,54,61,.3)'}, title:{display:true,text:'매출',color:'#388bfd',font:{size:11}}},
+        y2:{position:'right', ticks:{color:'#3fb950',font:{size:11},callback:v=>v+'억'}, grid:{drawOnChartArea:false}, title:{display:true,text:'세전이익',color:'#3fb950',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// PL 테이블 렌더 (공통)
+function renderPLTable(accounts, tbodyId, grossRowLabel) {
+  const { month, raw, tgt, ly, team } = state;
+  const tOff = teamColOffset(team);
+  const prev = month > 1 ? month - 1 : null;
+
+  // 매출이익 계산
+  const rev_a  = getVal(raw, 8, month, tOff);
+  const cogs_a = getVal(raw, 22, month, tOff);
+  const rev_t  = getVal(tgt, 8, month, tOff);
+  const cogs_t = getVal(tgt, 22, month, tOff);
+  const rev_l  = getVal(ly,  8, month, tOff);
+  const cogs_l = getVal(ly,  22, month, tOff);
+  const rev_p  = prev ? getVal(raw, 8, prev, tOff) : null;
+  const cogs_p = prev ? getVal(raw, 22, prev, tOff) : null;
+
+  let html = '';
+  accounts.forEach(acc => {
+    let act, tgtV, lyV, prevV;
+    if (acc.row === 'GROSS_D') {
+      act=rev_a-cogs_a; tgtV=rev_t-cogs_t; lyV=rev_l-cogs_l; prevV=prev?(rev_p-cogs_p):null;
+    } else {
+      act  = getVal(raw, acc.row, month, tOff);
+      tgtV = getVal(tgt, acc.row, month, tOff);
+      lyV  = getVal(ly,  acc.row, month, tOff);
+      prevV= prev ? getVal(raw, acc.row, prev, tOff) : null;
+    }
+
+    const achvPct = tgtV ? act/tgtV*100 : null;
+    const achv    = achvPct != null ? achvPct.toFixed(1)+'%' : '—';
+    const achvCls = achvPct==null?'neu-txt':achvPct>=100?'pos':achvPct>=80?'neu-txt':'neg';
+    const momV    = mom(act, prevV);
+    const yoy     = mom(act, lyV);
+
+    const isCost = [40,22,23,30,260].includes(acc.row) ||
+      (acc.row>=41 && acc.row<=258) || (acc.row>=261 && acc.row<=435) ||
+      [456,463,464,469,472,476,477,455].includes(acc.row);
+    const momCls = isCost ? (momV.cls==='pos'?'neg':momV.cls==='neg'?'pos':momV.cls) : momV.cls;
+    const yoyCls = isCost ? (yoy.cls==='pos'?'neg':yoy.cls==='neg'?'pos':yoy.cls) : yoy.cls;
+
+    let rowClass = 'row-' + acc.type;
+    if (acc.type==='total') {
+      const isProfitRow = ['매출이익','(직접) 영업이익','(직접) 세전이익','영업이익 (전체)','세전이익 (전체)'].includes(acc.name);
+      if (isProfitRow && act < 0) rowClass += ' loss';
+      else if (isProfitRow) rowClass += ' profit';
+    }
+
+    html += `<tr class="${rowClass}">
+      <td>${acc.name}</td>
+      <td>${prevV!=null?fmt(prevV):'—'}</td>
+      <td>${fmt(act)}</td>
+      <td>${fmt(tgtV)}</td>
+      <td class="${achvCls}">${achv}</td>
+      <td>${fmt(lyV)}</td>
+      <td class="${yoyCls}">${yoy.txt}</td>
+      <td class="${momCls}">${momV.txt}</td>
+    </tr>`;
+  });
+  document.getElementById(tbodyId).innerHTML = html;
+}
+
+// 전체 렌더
+function renderAll() {
+  const team = TEAMS.find(t => t.key === state.team);
+  document.getElementById('teamTitle').textContent = team.label;
+  document.getElementById('teamSubtitle').textContent = `2026년 ${state.month}월 기준`;
+  renderMonthFilter();
+  renderKPI();
+  renderChart();
+  renderPLTable(ACC_DIRECT, 'plDirectBody');
+  renderPLTable(ACC_FULL,   'plFullBody');
+}
+
+function selectTeam(key) {
+  state.team = key;
+  renderTeamTabs();
+  renderAll();
+}
+
+// 데이터 로드
+async function loadData() {
+  const bar = document.getElementById('statusBar');
+  try {
+    const payload = await fetchJSONP(SCRIPT_URL + '?action=getRaw');
+    if (!payload || !payload.raw_2026) throw new Error('raw_2026 없음');
+    state.raw = payload.raw_2026;
+    state.tgt = payload.raw_target_26 || [];
+    state.ly  = payload.raw_lastyear  || [];
+
+    let maxM = 1;
+    for (let m = 1; m <= 12; m++) {
+      const v = state.raw[8] ? state.raw[8][11+9*(m-1)] : 0;
+      if (v && v > 0) maxM = m;
+    }
+    state.maxMonth = maxM;
+    state.month    = maxM;
+
+    bar.className = 'status-bar ok';
+    bar.innerHTML = `<span>✓ 구글시트 연결됨 · ${maxM}월까지 데이터</span>`;
+    setTimeout(() => bar.style.display='none', 2000);
+
+    renderTeamTabs();
+    renderAll();
+  } catch(e) {
+    bar.className = 'status-bar error';
+    bar.innerHTML = `<span>⚠ 로드 실패: ${e.message}</span>`;
+  }
+}
+
+renderTeamTabs();
+loadData();
+</script>
+</body>
+</html>
