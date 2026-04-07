@@ -227,8 +227,8 @@ const ACC_DIRECT = [
   {name:'(4)경매원가',         type:'sub',    row:30},
   {name:'매출이익',            type:'total',  row:'GROSS_D'},
   {name:'(직접) 판관비',       type:'header', row:40},
-  {name:'(직접) 영업이익',     type:'total',  row:216},
-  {name:'(직접) 세전이익',     type:'total',  row:258},
+  {name:'(직접) 영업이익',     type:'total',  row:217},
+  {name:'(직접) 세전이익',     type:'total',  row:260},
 ];
 
 const ACC_FULL = [
@@ -262,10 +262,10 @@ const fmtA = v => {
   if (v == null) return '—';
   const a = Math.abs(v);
   const sign = v < 0 ? '-' : '';
+  if (a === 0)         return '0억';
   if (a >= 10e8)       return sign + (a/1e8).toFixed(1) + '억';  // 10억 이상: X.X억
   if (a >= 1e8)        return sign + (a/1e8).toFixed(2) + '억';  // 1억 이상: X.XX억
   if (a >= 0.1e8)      return sign + (a/1e8).toFixed(3) + '억';  // 1천만 이상: X.XXX억
-  if (a === 0)         return '0억';
   return sign + (a/1e8).toFixed(3) + '억';                        // 1천만 미만: X.XXX억
 };
 const pct  = (a,b) => (!b) ? '—' : (a/b*100).toFixed(1) + '%';
@@ -333,13 +333,13 @@ function renderKPI() {
   const sg_a = getVal(raw, 40, month, tOff);
   const sg_p = prev ? getVal(raw, 40, prev, tOff) : null;
 
-  const net_a = getVal(raw, 258, month, tOff);
-  const net_t = getVal(tgt, 258, month, tOff);
-  const net_l = getVal(ly,  258, month, tOff);
-  const net_p = prev ? getVal(raw, 258, prev, tOff) : null;
+  const net_a = getVal(raw, 260, month, tOff);
+  const net_t = getVal(tgt, 260, month, tOff);
+  const net_l = getVal(ly,  260, month, tOff);
+  const net_p = prev ? getVal(raw, 260, prev, tOff) : null;
 
-  const oi_a = getVal(raw, 216, month, tOff);
-  const oi_p = prev ? getVal(raw, 216, prev, tOff) : null;
+  const oi_a = getVal(raw, 217, month, tOff);
+  const oi_p = prev ? getVal(raw, 217, prev, tOff) : null;
 
   const cards = [
     { label:'매출액',         val:fmtA(rev_a),   achv:pct(rev_a,rev_t),   m:mom(rev_a,rev_p),   ly:fmtA(rev_l) },
@@ -367,8 +367,8 @@ function renderChart() {
     labels.push(m+'월');
     rev.push(+(getVal(raw,8,m,tOff)/1e8).toFixed(2));
     revT.push(+(getVal(tgt,8,m,tOff)/1e8).toFixed(2));
-    net.push(+(getVal(raw,258,m,tOff)/1e8).toFixed(2));
-    netT.push(+(getVal(tgt,258,m,tOff)/1e8).toFixed(2));
+    net.push(+(getVal(raw,260,m,tOff)/1e8).toFixed(2));
+    netT.push(+(getVal(tgt,260,m,tOff)/1e8).toFixed(2));
   }
 
   if (trendChart) { trendChart.destroy(); trendChart = null; }
@@ -434,7 +434,7 @@ function renderPLTable(accounts, tbodyId, grossRowLabel) {
     const yoy     = mom(act, lyV);
 
     const isCost = [40,22,23,30,260].includes(acc.row) ||
-      (acc.row>=41 && acc.row<=258) || (acc.row>=261 && acc.row<=435) ||
+      (acc.row>=41 && acc.row<=260) || (acc.row>=261 && acc.row<=435) ||
       [456,463,464,469,472,476,477,455].includes(acc.row);
     const momCls = isCost ? (momV.cls==='pos'?'neg':momV.cls==='neg'?'pos':momV.cls) : momV.cls;
     const yoyCls = isCost ? (yoy.cls==='pos'?'neg':yoy.cls==='neg'?'pos':yoy.cls) : yoy.cls;
