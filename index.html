@@ -806,7 +806,7 @@ const RAW = {
 // 상태
 // ═══════════════════════════════════════════════════════════════
 let state = {
-  month: 2,
+  month: 1,
   maxMonth: 2,
   sheetId: '',
   connected: false,
@@ -1594,7 +1594,7 @@ async function connectSheets() {
 
   try {
     // Apps Script 프록시 방식 — CORS 완전 우회
-    const url = 'https://script.google.com/macros/s/AKfycbwCuquPP4H9lC6ohnPpImX0sPyXNE7hv5nnQiZx0oHq_d2rco_LAlb7ariFCu-okBRHyQ/exec';
+    const url = 'https://script.google.com/macros/s/AKfycbx3CD6ZivzNMVhuWbGXqS2K671dwK13cYqRpLYhKmlrhEUVn0eHV-T_RIuJh7VJARn0ag/exec';
     const payload = await fetchJSONP(url);
 
     // 다중 시트 객체 or 단일 배열 모두 처리
