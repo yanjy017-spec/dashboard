@@ -258,7 +258,16 @@ function fetchJSONP(url) {
 
 // 숫자 포맷
 const fmt  = v => v == null ? '—' : Math.round(v/1e6).toLocaleString();
-const fmtA = v => v == null ? '—' : (v/1e8).toFixed(1) + '억';
+const fmtA = v => {
+  if (v == null) return '—';
+  const a = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (a >= 10e8)       return sign + (a/1e8).toFixed(1) + '억';  // 10억 이상: X.X억
+  if (a >= 1e8)        return sign + (a/1e8).toFixed(2) + '억';  // 1억 이상: X.XX억
+  if (a >= 0.1e8)      return sign + (a/1e8).toFixed(3) + '억';  // 1천만 이상: X.XXX억
+  if (a === 0)         return '0억';
+  return sign + (a/1e8).toFixed(3) + '억';                        // 1천만 미만: X.XXX억
+};
 const pct  = (a,b) => (!b) ? '—' : (a/b*100).toFixed(1) + '%';
 const mom  = (a,b) => {
   if (b == null || !b) return {txt:'—', cls:'neu-txt'};
