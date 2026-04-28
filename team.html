@@ -268,7 +268,20 @@ const fmtA = v => {
   if (a >= 0.1e8)      return sign + (a/1e8).toFixed(3) + '억';  // 1천만 이상: X.XXX억
   return sign + (a/1e8).toFixed(3) + '억';                        // 1천만 미만: X.XXX억
 };
-const pct  = (a,b) => (!b) ? '—' : (a/b*100).toFixed(1) + '%';
+const pct = (a,b) => (!b) ? '—' : (a/b*100).toFixed(1) + '%';
+const smartPct = (act, tgt) => {
+  if (!tgt) return '—';
+  if (tgt < 0) {
+    const diff = Math.round((act - tgt) / 1e8 * 10) / 10;
+    if (diff === 0) return '±0';
+    if (diff < 0) return '▼' + Math.abs(Math.round((act-tgt)/1e6)).toLocaleString() + ' 초과손실';
+    return '▲' + Math.abs(Math.round((act-tgt)/1e6)).toLocaleString() + ' 목표초과';
+  }
+  if (act < 0 && tgt > 0) {
+    return '▼' + Math.abs(Math.round((act-tgt)/1e6)).toLocaleString() + ' 초과손실';
+  }
+  return (act/tgt*100).toFixed(1) + '%';
+};
 const mom  = (a,b) => {
   if (b == null || !b) return {txt:'—', cls:'neu-txt'};
   const r = (a-b)/Math.abs(b)*100;
@@ -342,16 +355,16 @@ function renderKPI() {
   const oi_p = prev ? getVal(raw, 216, prev, tOff) : null;
 
   const cards = [
-    { label:'매출액',         val:fmtA(rev_a),   achv:pct(rev_a,rev_t),   m:mom(rev_a,rev_p),   ly:fmtA(rev_l) },
-    { label:'매출이익',       val:fmtA(gross_a), achv:pct(gross_a,gross_t), m:null,              ly:null },
+    { label:'매출액',         val:fmtA(rev_a),   achv:smartPct(rev_a,rev_t),   m:mom(rev_a,rev_p),   ly:fmtA(rev_l) },
+    { label:'매출이익',       val:fmtA(gross_a), achv:smartPct(gross_a,gross_t), m:null,              ly:null },
     { label:'(직접) 판관비',  val:fmtA(sg_a),    achv:null,               m:mom(sg_a,sg_p),     ly:null },
     { label:'(직접) 영업이익',val:fmtA(oi_a),    achv:null,               m:mom(oi_a,oi_p),     ly:null },
-    { label:'(직접) 세전이익',val:fmtA(net_a),   achv:pct(net_a,net_t),   m:mom(net_a,net_p),   ly:fmtA(net_l) },
+    { label:'(직접) 세전이익',val:fmtA(net_a),   achv:smartPct(net_a,net_t),   m:mom(net_a,net_p),   ly:fmtA(net_l) },
   ];
 
   document.getElementById('kpiRow').innerHTML = cards.map(c => {
     const achvPct = c.achv ? parseFloat(c.achv) : null;
-    const ab = c.achv ? `<span class="badge ${achvPct>=100?'up':'down'}"><span class="badge-lbl">달성률</span>${c.achv}</span>` : '';
+    const ab = c.achv ? `<span class="badge ${c.achv.includes('초과손실')?'down':c.achv.includes('목표초과')?'up':achvPct>=100?'up':'down'}"><span class="badge-lbl">달성률</span>${c.achv}</span>` : '';
     const mb = c.m ? `<span class="badge ${c.m.cls==='pos'?'up':c.m.cls==='neg'?'down':'neu'}"><span class="badge-lbl">전년대비</span>${c.m.txt}</span>` : '';
     const lb = c.ly ? `<span style="font-size:11px;color:var(--muted)">전년 ${c.ly}</span>` : '';
     return `<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.val}</div><div class="kpi-meta">${ab}${mb}${lb}</div></div>`;
@@ -434,15 +447,21 @@ function renderPLTable(accounts, tbodyId, grossRowLabel) {
       const diff = Math.round((act - tgtV) / 1e6);
       if (diff === 0) {
         achv = '±0'; achvCls = 'neu-txt';
-      } else if (diff > 0) {
+      } else if (diff < 0) {
         achv = '▼' + Math.abs(diff).toLocaleString() + ' 초과손실'; achvCls = 'neg';
       } else {
         achv = '▲' + Math.abs(diff).toLocaleString() + ' 목표초과'; achvCls = 'pos';
       }
     } else {
       const achvPct = act/tgtV*100;
-      achv = achvPct.toFixed(1)+'%';
-      achvCls = achvPct>=100?'pos':achvPct>=80?'neu-txt':'neg';
+      if (act < 0 && tgtV > 0) {
+        // 목표 양수인데 실적 음수: 초과손실
+        const diff = Math.round((act - tgtV) / 1e6);
+        achv = '▼' + Math.abs(diff).toLocaleString() + ' 초과손실'; achvCls = 'neg';
+      } else {
+        achv = achvPct.toFixed(1)+'%';
+        achvCls = achvPct>=100?'pos':achvPct>=80?'neu-txt':'neg';
+      }
     }
     const momV    = mom(act, prevV);
     const yoy     = mom(act, lyV);
