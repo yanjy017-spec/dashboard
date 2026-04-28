@@ -876,7 +876,7 @@ function renderKPI() {
     const arrow = r > 0 ? '▲' : '▼';
     return `<span class="kpi-badge ${cls}"><span class="badge-lbl">전월대비</span>${arrow}${Math.abs(r).toFixed(1)}%</span>`;
   }
-  function fmtA(v) { if (!v) return null; return Math.abs(v) >= 1e8 ? (v/1e8).toFixed(1)+'억' : (v/1e8).toFixed(2)+'억'; }
+  function fmtA(v) { if (!v && v !== 0) return null; if (!v) return null; const a = Math.abs(v); return a >= 10 ? v.toFixed(1)+'억' : a >= 1 ? v.toFixed(2)+'억' : v.toFixed(3)+'억'; }
 
   // 이익률 — 소수(0.014) or % 직접(1.4) 모두 처리
   function toPercent(v) { return Math.abs(v) <= 1 ? v * 100 : v; }
@@ -924,7 +924,7 @@ function renderKPI() {
     { label:`당월 매출이익 (${state.month}월)`,   value:fmt(mGP실적,1)+'억', color:'--blue',
       achv:smartPct(mGP실적,mGP목표),  tgt:fmtA(mGP목표),  mom:momBadge(mGP실적,mGP전월),  prev:fmtA(mGP전월) },
     { label:`당월 판관비 (${state.month}월)`,     value:fmt(mSGA실적,1)+'억', color:'--red',
-      achv:smartPct(mSGA실적,mSGA목표), tgt:fmtA(mSGA목표), mom:momBadge(mSGA실적,mSGA전월), prev:fmtA(mSGA전월) },
+      achv:null, tgt:null, mom:momBadge(mSGA실적,mSGA전월), prev:fmtA(mSGA전월) },
     { label:`당월 영업이익 (${state.month}월)`,   value:fmt(mOI실적,1)+'억', color:'--blue',
       achv:null, tgt:null, mom:momBadge(mOI실적,mOI전월), prev:fmtA(mOI전월) },
     { label:`당월 세전이익 (${state.month}월)`,   value:fmt(mP실적,1)+'억', color:'--green',
