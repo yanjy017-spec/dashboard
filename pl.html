@@ -416,10 +416,10 @@ function renderKPI() {
   const sg_act   = getVal(raw, 261, month);
   const sg_prev  = prev ? getVal(raw, 261, prev) : null;
 
-  const net_act  = getVal(raw, 478, month);
-  const net_tgt  = getVal(tgt, 478, month);
-  const net_ly   = getVal(ly,  478, month);
-  const net_prev = prev ? getVal(raw, 478, prev) : null;
+  const net_act  = getVal(raw, 480, month);
+  const net_tgt  = getVal(tgt, 480, month);
+  const net_ly   = getVal(ly,  480, month);
+  const net_prev = prev ? getVal(raw, 480, prev) : null;
 
   const oi_act  = getVal(raw, 437, month);
   const oi_prev = prev ? getVal(raw, 437, prev) : null;
@@ -512,7 +512,7 @@ function renderPL() {
     // 달성률 색상
     const achvCls = achvPct == null ? 'neu-txt' : achvPct >= 100 ? 'pos' : achvPct >= 80 ? 'neu-txt' : 'neg';
     // 이익 행은 음수가 나쁜 것
-    const isProfitRow = [436, 478, 'GROSS'].includes(acc.row);
+    const isProfitRow = [437, 480, 'GROSS'].includes(acc.row);
 
     let rowClass = 'row-' + acc.type;
     if (acc.type === 'total') {
