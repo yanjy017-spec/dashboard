@@ -197,31 +197,20 @@
   .team-table-card { overflow-x:auto; -webkit-overflow-scrolling:touch;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 10px; padding: 20px; margin-bottom: 24px;
+    overflow-x: auto;
   }
-  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
     letter-spacing: .5px; color: var(--muted); padding: 8px 12px;
     text-align: right; border-bottom: 1px solid var(--border);
-    background: var(--surface);
   }
-  thead th:first-child {
-    text-align: left;
-    position: sticky; left: 0; z-index: 3;
-    background: var(--surface);
-    box-shadow: 2px 0 6px rgba(0,0,0,.3);
-  }
+  thead th:first-child { text-align: left; }
   tbody tr { border-bottom: 1px solid rgba(48,54,61,.5); transition: background .1s; }
   tbody tr:hover { background: var(--surface2); }
   tbody tr:last-child { border-bottom: none; }
-  tbody td { padding: 10px 12px; text-align: right; border-bottom: 1px solid rgba(48,54,61,.5); }
-  tbody td:first-child {
-    text-align: left; font-weight: 500;
-    position: sticky; left: 0; z-index: 2;
-    background: var(--surface);
-    box-shadow: 2px 0 6px rgba(0,0,0,.3);
-  }
-  tbody tr:hover td:first-child { background: var(--surface2); }
+  tbody td { padding: 10px 12px; text-align: right; }
+  tbody td:first-child { text-align: left; font-weight: 500; }
   .cell-num { font-family: var(--mono); font-size: 13px; }
   .cell-pos { color: var(--green); }
   .cell-neg { color: var(--red); }
@@ -504,63 +493,9 @@
     .header-right { width: 100%; justify-content: flex-end; }
     .header-meta { font-size: 11px; }
   }
-
-  /* ── 로그인 오버레이 ── */
-  #loginOverlay {
-    position: fixed; inset: 0; z-index: 9999;
-    background: #0d1117;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .login-box {
-    background: #161b22; border: 1px solid #30363d;
-    border-radius: 14px; padding: 40px 36px; width: 340px;
-    text-align: center;
-  }
-  .login-logo {
-    font-size: 13px; font-weight: 700; color: #e8401c;
-    letter-spacing: -0.3px; margin-bottom: 28px;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .login-logo-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #e8401c; box-shadow: 0 0 8px #e8401c;
-  }
-  .login-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #e6edf3; }
-  .login-sub { font-size: 12px; color: #8b949e; margin-bottom: 24px; }
-  .login-input {
-    width: 100%; padding: 11px 14px; border-radius: 8px;
-    background: #0d1117; border: 1px solid #30363d;
-    color: #e6edf3; font-size: 14px; font-family: 'JetBrains Mono', monospace;
-    outline: none; text-align: center; letter-spacing: 4px;
-    margin-bottom: 14px; transition: border-color .2s;
-  }
-  .login-input:focus { border-color: #e8401c; }
-  .login-btn {
-    width: 100%; padding: 11px; border-radius: 8px;
-    background: #e8401c; color: #fff; border: none;
-    font-size: 14px; font-weight: 600; cursor: pointer;
-    font-family: 'Noto Sans KR', sans-serif; transition: opacity .2s;
-  }
-  .login-btn:hover { opacity: .85; }
-  .login-error {
-    font-size: 12px; color: #f85149; margin-top: 10px;
-    display: none;
-  }
 </style>
 </head>
 <body>
-<!-- ── 로그인 오버레이 ── -->
-<div id="loginOverlay">
-  <div class="login-box">
-    <div class="login-logo"><div class="login-logo-dot"></div>매출현황 대시보드</div>
-    <div class="login-title">로그인</div>
-    <div class="login-sub">접근 비밀번호를 입력하세요</div>
-    <input type="password" id="loginInput" class="login-input" placeholder="••••••"
-      onkeydown="if(event.key==='Enter')checkLogin()">
-    <button class="login-btn" onclick="checkLogin()">확인</button>
-    <div class="login-error" id="loginError">비밀번호가 틀렸습니다</div>
-  </div>
-</div>
 
 <!-- ── 헤더 ──────────────────────────────────── -->
 <header>
@@ -817,7 +752,7 @@ const RAW = {
 // 상태
 // ═══════════════════════════════════════════════════════════════
 let state = {
-  month: 1,
+  month: 2,
   maxMonth: 2,
   sheetId: '',
   connected: false,
@@ -909,6 +844,39 @@ function renderKPI() {
   const mP실적   = d.profit?.실적?.[m] || 0;
   const mP목표   = d.profit?.목표?.[m] || 0;
   const mP전년   = d.profit?.전년?.[m] || 0;
+  // 전월
+  const prevM = m > 0 ? m - 1 : null;
+  const mRev전월 = prevM !== null ? (d.rev?.실적?.[prevM] || 0) : null;
+  const mGP전월  = prevM !== null ? (d.grossProfit?.실적?.[prevM] || 0) : null;
+  const mP전월   = prevM !== null ? (d.profit?.실적?.[prevM] || 0) : null;
+  const mSGA실적 = d.sga?.실적?.[m] || 0;
+  const mSGA목표 = d.sga?.목표?.[m] || 0;
+  const mSGA전월 = prevM !== null ? (d.sga?.실적?.[prevM] || 0) : null;
+  const mOI실적  = d.oi?.실적?.[m] || 0;
+  const mOI전월  = prevM !== null ? (d.oi?.실적?.[prevM] || 0) : null;
+
+  // smartPct: 음수 목표 처리
+  function smartPct(act, tgt) {
+    if (!tgt) return null;
+    if (tgt < 0) {
+      const diff = Math.round((act - tgt) * 10) / 10;
+      if (diff === 0) return {txt:'±0', cls:'badge-muted'};
+      if (diff < 0) return {txt:'▼'+Math.abs(Math.round(act-tgt)).toLocaleString()+' 초과손실', cls:'badge-red'};
+      return {txt:'▲'+Math.abs(Math.round(act-tgt)).toLocaleString()+' 목표초과', cls:'badge-green'};
+    }
+    if (act < 0 && tgt > 0) return {txt:'▼'+Math.abs(Math.round(act-tgt)).toLocaleString()+' 초과손실', cls:'badge-red'};
+    const p = act/tgt*100;
+    return {txt:p.toFixed(1)+'%', cls:p>=100?'badge-green':p>=80?'badge-blue':'badge-red'};
+  }
+  function momBadge(curr, prev) {
+    if (prev === null || !prev) return '';
+    const r = (curr-prev)/Math.abs(prev)*100;
+    if (Math.abs(r) < 0.05) return '<span class="kpi-badge badge-muted">±0%</span>';
+    const cls = r > 0 ? 'badge-green' : 'badge-red';
+    const arrow = r > 0 ? '▲' : '▼';
+    return `<span class="kpi-badge ${cls}"><span class="badge-lbl">전월대비</span>${arrow}${Math.abs(r).toFixed(1)}%</span>`;
+  }
+  function fmtA(v) { if (!v) return null; return Math.abs(v) >= 1e8 ? (v/1e8).toFixed(1)+'억' : (v/1e8).toFixed(2)+'억'; }
 
   // 이익률 — 소수(0.014) or % 직접(1.4) 모두 처리
   function toPercent(v) { return Math.abs(v) <= 1 ? v * 100 : v; }
@@ -951,27 +919,16 @@ function renderKPI() {
   ];
 
   const ROW2 = [
-    { label:`당월 매출액 (${state.month}월)`,   value:`${fmt(mRev실적,1)}억`,
-      color:'--accent',
-      badges:[rateBadge(mRev실적,mRev목표), changeSign(mRev실적,mRev전년)],
-      vs:`목표 ${fmt(mRev목표,1)}억 · 전년 ${fmt(mRev전년,1)}억` },
-    { label:`당월 매출이익 (${state.month}월)`,  value:`${fmt(mGP실적,1)}억`,
-      color:'--blue',
-      badges:[rateBadge(mGP실적,mGP목표), changeSign(mGP실적,mGP전년)],
-      vs:`목표 매출이익 ${fmt(mGP목표,1)}억 · 전년 ${fmt(mGP전년,1)}억` },
-    { label:`당월 판관비 (${state.month}월)`, value:`${fmt(d.sga ? d.sga?.실적?.[m] || 0 : 0, 1)}억`,
-      color:'--red',
-      badges:[(() => { const v=d.sga?d.sga?.실적?.[m] || 0:0, t=d.sga?d.sga?.목표?.[m] || 0:0; if(!t) return ''; const ok=v<=t; return `<span class="kpi-badge ${ok?'badge-green':'badge-red'}">${ok?'▼':'▲'}목표대비 ${Math.abs((v-t)).toFixed(1)}억</span>`; })()],
-      vs:`` },
-    { label:`당월 영업이익 (${state.month}월)`, value:`${fmt(d.oi ? d.oi?.실적?.[m] || 0 : 0, 1)}억`,
-      color:'--blue',
-      badges:[],
-      vs:`` },
-    { label:`당월 세전이익 (${state.month}월)`,  value:`${fmt(mP실적,1)}억`,
-      color:'--green',
-      badges:[rateBadge(mP실적,mP목표), changeSign(mP실적,mP전년)],
-      vs:`목표 ${fmt(mP목표,1)}억 · 전년 ${fmt(mP전년,1)}억` },
-
+    { label:`당월 매출액 (${state.month}월)`,    value:fmt(mRev실적,1)+'억', color:'--accent',
+      achv:smartPct(mRev실적,mRev목표), tgt:fmtA(mRev목표), mom:momBadge(mRev실적,mRev전월), prev:fmtA(mRev전월) },
+    { label:`당월 매출이익 (${state.month}월)`,   value:fmt(mGP실적,1)+'억', color:'--blue',
+      achv:smartPct(mGP실적,mGP목표),  tgt:fmtA(mGP목표),  mom:momBadge(mGP실적,mGP전월),  prev:fmtA(mGP전월) },
+    { label:`당월 판관비 (${state.month}월)`,     value:fmt(mSGA실적,1)+'억', color:'--red',
+      achv:smartPct(mSGA실적,mSGA목표), tgt:fmtA(mSGA목표), mom:momBadge(mSGA실적,mSGA전월), prev:fmtA(mSGA전월) },
+    { label:`당월 영업이익 (${state.month}월)`,   value:fmt(mOI실적,1)+'억', color:'--blue',
+      achv:null, tgt:null, mom:momBadge(mOI실적,mOI전월), prev:fmtA(mOI전월) },
+    { label:`당월 세전이익 (${state.month}월)`,   value:fmt(mP실적,1)+'억', color:'--green',
+      achv:smartPct(mP실적,mP목표), tgt:fmtA(mP목표), mom:momBadge(mP실적,mP전월), prev:fmtA(mP전월) },
   ];
 
   const makeCard = c => {
@@ -982,8 +939,23 @@ function renderKPI() {
       <div class="kpi-label">${c.label}</div>
       <div class="kpi-value">${c.value}</div>
       <div class="kpi-sub">
-        <div class="kpi-badges-row">${c.badges.join('')}</div>
+        <div class="kpi-badges-row">${c.badges ? c.badges.join('') : ''}</div>
         ${vs ? `<span class="kpi-vs">${vs}</span>` : ''}
+      </div>
+    </div>`;
+  };
+  const makeCard2 = c => {
+    const ab = c.achv ? `<span class="kpi-badge ${c.achv.cls}"><span class="badge-lbl">달성률</span>${c.achv.txt}</span>` : '';
+    const tb = c.tgt  ? `<span style="font-size:11px;color:var(--muted)">목표 ${c.tgt}</span>` : '';
+    const mb = c.mom  || '';
+    const pb = c.prev ? `<span style="font-size:11px;color:var(--muted)">전월 ${c.prev}</span>` : '';
+    return `
+    <div class="kpi-card" style="--card-color:var(${c.color})">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub" style="flex-direction:column;gap:4px;">
+        <div style="display:flex;gap:6px;align-items:center;">${ab}${tb}</div>
+        <div style="display:flex;gap:6px;align-items:center;">${mb}${pb}</div>
       </div>
     </div>`;
   };
@@ -995,7 +967,7 @@ function renderKPI() {
     </div>
     <div class="kpi-section monthly">
       <div class="kpi-section-label">당월 실적</div>
-      <div class="kpi-section-grid">${ROW2.map(makeCard).join('')}</div>
+      <div class="kpi-section-grid">${ROW2.map(makeCard2).join('')}</div>
     </div>
     
     <!-- ★ AI 분석 패널 (당월 실적 바로 아래) ★ -->
@@ -1605,7 +1577,7 @@ async function connectSheets() {
 
   try {
     // Apps Script 프록시 방식 — CORS 완전 우회
-    const url = 'https://script.google.com/macros/s/AKfycbx3CD6ZivzNMVhuWbGXqS2K671dwK13cYqRpLYhKmlrhEUVn0eHV-T_RIuJh7VJARn0ag/exec';
+    const url = 'https://script.google.com/macros/s/AKfycbzifbb5yLAjT9VOCv5DgNUS3hEfrd6Ri8fM-l46IIagefp2FWzgEkgFtKsYCt22M9FlFg/exec';
     const payload = await fetchJSONP(url);
 
     // 다중 시트 객체 or 단일 배열 모두 처리
@@ -1633,6 +1605,7 @@ async function connectSheets() {
 
     state.data      = parsed.data;
     state.maxMonth  = parsed.maxMonth;
+    state.month     = parsed.maxMonth;
     state.dbStaff   = dbStaff;
     state.dbCash    = dbCash;
     state.dbInventory = dbInventory;
@@ -1906,24 +1879,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ESC로 모달 닫기
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-</script>
-<script>
-const APP_PASSWORD = '215366';  // ← 비밀번호 변경 시 여기만 수정
-(function() {
-  const ok = sessionStorage.getItem('dash_auth');
-  if (ok === '1') document.getElementById('loginOverlay').style.display = 'none';
-})();
-function checkLogin() {
-  const v = document.getElementById('loginInput').value;
-  if (v === APP_PASSWORD) {
-    sessionStorage.setItem('dash_auth', '1');
-    document.getElementById('loginOverlay').style.display = 'none';
-  } else {
-    document.getElementById('loginError').style.display = 'block';
-    document.getElementById('loginInput').value = '';
-    document.getElementById('loginInput').focus();
-  }
-}
 </script>
 </body>
 </html>
