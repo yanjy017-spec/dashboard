@@ -365,7 +365,7 @@ function renderKPI() {
   document.getElementById('kpiRow').innerHTML = cards.map(c => {
     const achvPct = c.achv ? parseFloat(c.achv) : null;
     const ab = c.achv ? `<span class="badge ${c.achv.includes('초과손실')?'down':c.achv.includes('목표초과')?'up':achvPct>=100?'up':'down'}"><span class="badge-lbl">달성률</span>${c.achv}</span>` : '';
-    const mb = c.m ? `<span class="badge ${c.m.cls==='pos'?'up':c.m.cls==='neg'?'down':'neu'}"><span class="badge-lbl">전년대비</span>${c.m.txt}</span>` : '';
+    const mb = c.m ? `<span class="badge ${c.m.cls==='pos'?'up':c.m.cls==='neg'?'down':'neu'}"><span class="badge-lbl">전월대비</span>${c.m.txt}</span>` : '';
     const lb = c.ly ? `<span style="font-size:11px;color:var(--muted)">전년 ${c.ly}</span>` : '';
     return `<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.val}</div><div class="kpi-meta">${ab}${mb}${lb}</div></div>`;
   }).join('');
@@ -546,5 +546,3 @@ loadData();
 </script>
 </body>
 </html>
-
-
