@@ -139,12 +139,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.95);backdrop-fil
   <div class="team-tabs" id="teamTabs"></div>
 
   <!-- 상태바 -->
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-    <div class="status-bar loading" id="statusBar" style="margin-bottom:0;flex:1;">
-      <div class="spinner"></div><span>구글시트에서 데이터 로딩 중...</span>
-    </div>
-    <button id="btnClearCache" onclick="clearCache()" style="padding:8px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap;font-family:var(--font);">🔄 캐시 갱신</button>
-  </div>
+  <div class="status-bar loading" id="statusBar"></div>
 
   <!-- 페이지 헤더 -->
   <div class="page-header">
@@ -209,7 +204,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.95);backdrop-fil
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSlO7t6rThF39RuavwQX--1jgAvE3D8ywXNQMExbSJmxd2_d09rqBXM0O3fwMG5gjWbw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwAg8eHmso1jg_vVix0M1Yc3ImCT1RmeSwQk0DuXafw6cwXcYNC5eDaUsPM0Q4GX4sJ/exec';
 
 const TEAMS = [
   {key:'AUCTION',  label:'AUCTION',   colOffset:2},
@@ -517,22 +512,6 @@ function selectTeam(key) {
   renderAll();
 }
 
-
-// ── 캐시 강제 갱신 ──
-async function clearCache() {
-  const btn = document.getElementById('btnClearCache');
-  if (btn) { btn.textContent = '⏳ 갱신 중...'; btn.disabled = true; }
-  try {
-    await fetchJSONP(SCRIPT_URL + '?action=clearCache');
-    if (btn) { btn.textContent = '✅ 갱신 완료'; }
-    setTimeout(() => {
-      if (btn) { btn.textContent = '🔄 캐시 갱신'; btn.disabled = false; }
-      loadData();
-    }, 800);
-  } catch(e) {
-    if (btn) { btn.textContent = '❌ 실패'; btn.disabled = false; }
-  }
-}
 
 // 데이터 로드
 async function loadData() {
