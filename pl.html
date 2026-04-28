@@ -220,9 +220,12 @@ nav {
   </div>
 
   <!-- 상태 바 -->
-  <div class="status-bar loading" id="statusBar">
-    <div class="spinner"></div>
-    <span>구글시트에서 데이터 로딩 중...</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+    <div class="status-bar loading" id="statusBar" style="margin-bottom:0;flex:1;">
+      <div class="spinner"></div>
+      <span>구글시트에서 데이터 로딩 중...</span>
+    </div>
+    <button id="btnClearCache" onclick="clearCache()" style="padding:8px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap;font-family:var(--font);">🔄 캐시 갱신</button>
   </div>
 
   <!-- KPI 카드 -->
@@ -274,7 +277,7 @@ nav {
 </div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLJX8prtLDnWgKTYfNYBvkLNjnD7xYw7O6vaXv1cJxvWlazzcCR1ID07ElKJT1RgaKlQ/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSlO7t6rThF39RuavwQX--1jgAvE3D8ywXNQMExbSJmxd2_d09rqBXM0O3fwMG5gjWbw/exec';
 
 // ── 계정과목 정의 ──
 // 행번호 기반 (0-indexed)
@@ -553,6 +556,23 @@ function renderAll() {
   renderPL();
 }
 
+
+// ── 캐시 강제 갱신 ──
+async function clearCache() {
+  const btn = document.getElementById('btnClearCache');
+  if (btn) { btn.textContent = '⏳ 갱신 중...'; btn.disabled = true; }
+  try {
+    await fetchJSONP(SCRIPT_URL + '?action=clearCache');
+    if (btn) { btn.textContent = '✅ 갱신 완료'; }
+    setTimeout(() => {
+      if (btn) { btn.textContent = '🔄 캐시 갱신'; btn.disabled = false; }
+      loadData();
+    }, 800);
+  } catch(e) {
+    if (btn) { btn.textContent = '❌ 실패'; btn.disabled = false; }
+  }
+}
+
 // ── 데이터 로드 ──
 async function loadData() {
   const bar = document.getElementById('statusBar');
@@ -574,7 +594,8 @@ async function loadData() {
     state.maxMonth = maxMonth;
 
     bar.className = 'status-bar ok';
-    bar.innerHTML = `<span>✓ 구글시트 연결됨 · ${maxMonth}월까지 데이터</span>`;
+    const cacheInfo = payload._cached ? ' · 캐시 데이터 (10분)' : ' · 실시간';
+    bar.innerHTML = `<span>✓ 구글시트 연결됨 · ${maxMonth}월까지 데이터${cacheInfo}</span>`;
     setTimeout(() => bar.style.display='none', 2000);
 
     renderAll();
