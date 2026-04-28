@@ -345,6 +345,7 @@ function renderKPI() {
   const gross_p = prev ? (rev_p - cogs_p) : null;
 
   const sg_a = getVal(raw, 40, month, tOff);
+  const sg_t = getVal(tgt, 40, month, tOff);
   const sg_p = prev ? getVal(raw, 40, prev, tOff) : null;
 
   const net_a = getVal(raw, 259, month, tOff);
@@ -352,22 +353,24 @@ function renderKPI() {
   const net_p = prev ? getVal(raw, 259, prev, tOff) : null;
 
   const oi_a = getVal(raw, 216, month, tOff);
+  const oi_t = getVal(tgt, 216, month, tOff);
   const oi_p = prev ? getVal(raw, 216, prev, tOff) : null;
 
   const cards = [
-    { label:'매출액',         val:fmtA(rev_a),   achv:smartPct(rev_a,rev_t),   m:mom(rev_a,rev_p),   prev:fmtA(rev_p) },
-    { label:'매출이익',       val:fmtA(gross_a), achv:smartPct(gross_a,gross_t), m:mom(gross_a,gross_p), prev:fmtA(gross_p) },
-    { label:'(직접) 판관비',  val:fmtA(sg_a),    achv:null,               m:mom(sg_a,sg_p),     prev:fmtA(sg_p) },
-    { label:'(직접) 영업이익',val:fmtA(oi_a),    achv:null,               m:mom(oi_a,oi_p),     prev:fmtA(oi_p) },
-    { label:'(직접) 세전이익',val:fmtA(net_a),   achv:smartPct(net_a,net_t),   m:mom(net_a,net_p),   prev:fmtA(net_p) },
+    { label:'매출액',         val:fmtA(rev_a),   achv:smartPct(rev_a,rev_t),   tgt:fmtA(rev_t),   m:mom(rev_a,rev_p),   prev:fmtA(rev_p) },
+    { label:'매출이익',       val:fmtA(gross_a), achv:smartPct(gross_a,gross_t), tgt:fmtA(gross_t), m:mom(gross_a,gross_p), prev:fmtA(gross_p) },
+    { label:'(직접) 판관비',  val:fmtA(sg_a),    achv:smartPct(sg_a,sg_t),   tgt:fmtA(sg_t),   m:mom(sg_a,sg_p),     prev:fmtA(sg_p) },
+    { label:'(직접) 영업이익',val:fmtA(oi_a),    achv:smartPct(oi_a,oi_t),   tgt:fmtA(oi_t),   m:mom(oi_a,oi_p),     prev:fmtA(oi_p) },
+    { label:'(직접) 세전이익',val:fmtA(net_a),   achv:smartPct(net_a,net_t),   tgt:fmtA(net_t),   m:mom(net_a,net_p),   prev:fmtA(net_p) },
   ];
 
   document.getElementById('kpiRow').innerHTML = cards.map(c => {
     const achvPct = c.achv ? parseFloat(c.achv) : null;
     const ab = c.achv ? `<span class="badge ${c.achv.includes('초과손실')?'down':c.achv.includes('목표초과')?'up':achvPct>=100?'up':'down'}"><span class="badge-lbl">달성률</span>${c.achv}</span>` : '';
+    const tb = c.tgt && c.tgt !== '—' ? `<span style="font-size:11px;color:var(--muted)">목표 ${c.tgt}</span>` : '';
     const mb = c.m ? `<span class="badge ${c.m.cls==='pos'?'up':c.m.cls==='neg'?'down':'neu'}"><span class="badge-lbl">전월대비</span>${c.m.txt}</span>` : '';
     const pb = c.prev && c.prev !== '—' ? `<span style="font-size:11px;color:var(--muted)">전월 ${c.prev}</span>` : '';
-    return `<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.val}</div><div class="kpi-meta">${ab}${mb}${pb}</div></div>`;
+    return `<div class="kpi-card"><div class="kpi-label">${c.label}</div><div class="kpi-value">${c.val}</div><div class="kpi-meta" style="flex-direction:column;align-items:flex-start;gap:4px;"><div style="display:flex;gap:6px;align-items:center;">${ab}${tb}</div><div style="display:flex;gap:6px;align-items:center;">${mb}${pb}</div></div></div>`;
   }).join('');
 }
 
