@@ -297,7 +297,7 @@ const ACCOUNTS = [
   {row:23,  name:'상품매출원가',            type:'sub'},
   {row:30,  name:'경매원가',                type:'sub'},
   {row:'GROSS', name:'매출이익',            type:'total'},
-  {row:260, name:'판관비 (전체)',           type:'header'},
+  {row:261, name:'판관비 (전체)',           type:'header'},
   {row:261, name:'급여',                   type:'detail'},
   {row:264, name:'상여금',                 type:'detail'},
   {row:265, name:'잡급',                   type:'detail'},
@@ -413,16 +413,16 @@ function renderKPI() {
   const gross_act = getVal(raw, 8, month) - getVal(raw, 22, month);
   const gross_tgt = getVal(tgt, 8, month) - getVal(tgt, 22, month);
 
-  const sg_act   = getVal(raw, 260, month);
-  const sg_prev  = prev ? getVal(raw, 260, prev) : null;
+  const sg_act   = getVal(raw, 261, month);
+  const sg_prev  = prev ? getVal(raw, 261, prev) : null;
 
   const net_act  = getVal(raw, 478, month);
   const net_tgt  = getVal(tgt, 478, month);
   const net_ly   = getVal(ly,  478, month);
   const net_prev = prev ? getVal(raw, 478, prev) : null;
 
-  const oi_act  = getVal(raw, 436, month);
-  const oi_prev = prev ? getVal(raw, 436, prev) : null;
+  const oi_act  = getVal(raw, 437, month);
+  const oi_prev = prev ? getVal(raw, 437, prev) : null;
 
   // 목표/전월 추가
   const gross_prev = prev ? (getVal(raw,8,prev) - getVal(raw,22,prev)) : null;
