@@ -427,9 +427,23 @@ function renderPLTable(accounts, tbodyId, grossRowLabel) {
       prevV= prev ? getVal(raw, acc.row, prev, tOff) : null;
     }
 
-    const achvPct = tgtV ? act/tgtV*100 : null;
-    const achv    = achvPct != null ? achvPct.toFixed(1)+'%' : '—';
-    const achvCls = achvPct==null?'neu-txt':achvPct>=100?'pos':achvPct>=80?'neu-txt':'neg';
+    let achv, achvCls;
+    if (!tgtV) {
+      achv = '—'; achvCls = 'neu-txt';
+    } else if (tgtV < 0) {
+      const diff = Math.round((act - tgtV) / 1e6);
+      if (diff === 0) {
+        achv = '±0'; achvCls = 'neu-txt';
+      } else if (diff > 0) {
+        achv = '▼' + Math.abs(diff).toLocaleString() + ' 초과손실'; achvCls = 'neg';
+      } else {
+        achv = '▲' + Math.abs(diff).toLocaleString() + ' 목표초과'; achvCls = 'pos';
+      }
+    } else {
+      const achvPct = act/tgtV*100;
+      achv = achvPct.toFixed(1)+'%';
+      achvCls = achvPct>=100?'pos':achvPct>=80?'neu-txt':'neg';
+    }
     const momV    = mom(act, prevV);
     const yoy     = mom(act, lyV);
 
