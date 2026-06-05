@@ -206,14 +206,29 @@ nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.95);backdrop-fil
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwAg8eHmso1jg_vVix0M1Yc3ImCT1RmeSwQk0DuXafw6cwXcYNC5eDaUsPM0Q4GX4sJ/exec';
 
-const TEAMS = [
-  {key:'AUCTION',  label:'AUCTION',   colOffset:2},
-  {key:'출품영업', label:'출품영업',  colOffset:3},
-  {key:'딜러운영', label:'딜러운영',  colOffset:5},
-  {key:'직영판매', label:'직영판매',  colOffset:6},
-  {key:'제휴영업', label:'제휴영업',  colOffset:7},
-  {key:'매입영업', label:'매입영업',  colOffset:8},
-];
+// 월에 따라 팀 구성 동적 변경
+// 1~4월: 기존 6팀 / 5월~: AUCTION, 출품영업, 법인영업팀(딜러운영 자리), 매입판매팀(직영판매 자리)
+function getTeams(month) {
+  if (!month || month <= 4) {
+    return [
+      {key:'AUCTION',  label:'AUCTION',   colOffset:2},
+      {key:'출품영업', label:'출품영업',  colOffset:3},
+      {key:'딜러운영', label:'딜러운영',  colOffset:5},
+      {key:'직영판매', label:'직영판매',  colOffset:6},
+      {key:'제휴영업', label:'제휴영업',  colOffset:7},
+      {key:'매입영업', label:'매입영업',  colOffset:8},
+    ];
+  } else {
+    return [
+      {key:'AUCTION',  label:'AUCTION',    colOffset:2},
+      {key:'출품영업', label:'출품영업',   colOffset:3},
+      {key:'법인영업', label:'법인영업팀', colOffset:5},
+      {key:'매입판매', label:'매입판매팀', colOffset:6},
+    ];
+  }
+}
+// 초기값 (페이지 로드 시)
+let TEAMS = getTeams(null);
 
 // 행번호 기반 계정 정의 (0-indexed = 엑셀행 - 1)
 const ACC_DIRECT = [
@@ -289,7 +304,7 @@ const mom  = (a,b) => {
 
 // 팀 컬럼 오프셋
 function teamColOffset(teamKey) {
-  return TEAMS.find(t => t.key === teamKey)?.colOffset || 0;
+  return getTeams(state.month).find(t => t.key === teamKey)?.colOffset || 0;
 }
 
 // 값 추출
@@ -302,10 +317,15 @@ function getVal(rows, rowIdx, m, teamOffset) {
 
 // 팀 탭 렌더
 function renderTeamTabs() {
+  TEAMS = getTeams(state.month);  // 월 바뀔 때마다 팀 목록 갱신
   const el = document.getElementById('teamTabs');
   el.innerHTML = TEAMS.map(t =>
     `<button class="team-tab${t.key===state.team?' active':''}" onclick="selectTeam('${t.key}')">${t.label}</button>`
   ).join('');
+  // 현재 선택된 팀이 새 목록에 없으면 첫 번째 팀으로 초기화
+  if (!TEAMS.find(t => t.key === state.team)) {
+    state.team = TEAMS[0].key;
+  }
 }
 
 // 월 필터 렌더
@@ -496,7 +516,7 @@ function renderPLTable(accounts, tbodyId, grossRowLabel) {
 
 // 전체 렌더
 function renderAll() {
-  const team = TEAMS.find(t => t.key === state.team);
+  const team = getTeams(state.month).find(t => t.key === state.team) || getTeams(state.month)[0];
   document.getElementById('teamTitle').textContent = team.label;
   document.getElementById('teamSubtitle').textContent = `2026년 ${state.month}월 기준`;
   renderMonthFilter();
