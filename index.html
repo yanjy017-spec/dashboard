@@ -1129,12 +1129,19 @@ function renderChartProfit() {
 function renderChartDivision() {
   destroyChart('division');
   const m = state.month - 1;
-  const teams = Object.keys(state.data.teams);
+  // 5월부터 팀 구조 변경
+  const teamKeys = state.month <= 4
+    ? Object.keys(state.data.teams)
+    : Object.keys(state.data.teams).filter(k => !['제휴영업','매입영업'].includes(k));
+  const teamLabels = state.month <= 4
+    ? teamKeys
+    : teamKeys.map(k => k === '딜러운영' ? '법인영업팀' : k === '직영판매' ? '매입판매팀' : k);
+  const teams = teamKeys;
 
   charts.division = new Chart(document.getElementById('chartDivision'), {
     type: 'bar',
     data: {
-      labels: teams.map(t => t.replace('팀','')),
+      labels: (typeof teamLabels !== 'undefined' ? teamLabels : teams).map(t => t.replace('팀','')),
       datasets: [
         { label: '실적', data: teams.map(t => (state.data.teams[t]?.profit?.실적||[])[m] || 0),
           backgroundColor: 'rgba(232,64,28,.75)', borderRadius: 4 },
@@ -1230,7 +1237,19 @@ function renderDivision() {
 // ═══════════════════════════════════════════════════════════════
 function renderTeamTable() {
   const m = state.month - 1;
-  const teams = state.data.teams;
+  const allTeams = state.data.teams;
+
+  // 5월부터 팀 구조 변경: 딜러운영→법인영업팀, 직영판매→매입판매팀, 제휴/매입영업 제외
+  const teamEntries = state.month <= 4
+    ? Object.entries(allTeams)
+    : Object.entries(allTeams)
+        .filter(([name]) => !['제휴영업','매입영업'].includes(name))
+        .map(([name, t]) => [
+          name === '딜러운영' ? '법인영업팀' :
+          name === '직영판매' ? '매입판매팀' : name,
+          t
+        ]);
+  const teams = Object.fromEntries(teamEntries);
 
   function sum(arr) { return (arr||new Array(12).fill(0)).slice(0,m+1).reduce((a,b)=>a+b,0); }
   function ratePct(실, 목) {
