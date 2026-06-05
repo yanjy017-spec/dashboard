@@ -493,9 +493,62 @@
     .header-right { width: 100%; justify-content: flex-end; }
     .header-meta { font-size: 11px; }
   }
+
+  /* ── 로그인 오버레이 ── */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0d1117;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 14px; padding: 40px 36px; width: 340px;
+    text-align: center;
+  }
+  .login-logo {
+    font-size: 13px; font-weight: 700; color: #e8401c;
+    letter-spacing: -0.3px; margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .login-logo-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #e8401c; box-shadow: 0 0 8px #e8401c;
+  }
+  .login-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #e6edf3; }
+  .login-sub { font-size: 12px; color: #8b949e; margin-bottom: 24px; }
+  .login-input {
+    width: 100%; padding: 11px 14px; border-radius: 8px;
+    background: #0d1117; border: 1px solid #30363d;
+    color: #e6edf3; font-size: 14px; font-family: 'JetBrains Mono', monospace;
+    outline: none; text-align: center; letter-spacing: 4px;
+    margin-bottom: 14px; transition: border-color .2s;
+  }
+  .login-input:focus { border-color: #e8401c; }
+  .login-btn {
+    width: 100%; padding: 11px; border-radius: 8px;
+    background: #e8401c; color: #fff; border: none;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif; transition: opacity .2s;
+  }
+  .login-btn:hover { opacity: .85; }
+  .login-error { font-size: 12px; color: #f85149; margin-top: 10px; display: none; }
+
 </style>
 </head>
 <body>
+<!-- ── 로그인 오버레이 ── -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo"><div class="login-logo-dot"></div>매출현황 대시보드</div>
+    <div class="login-title">로그인</div>
+    <div class="login-sub">접근 비밀번호를 입력하세요</div>
+    <input type="password" id="loginInput" class="login-input" placeholder="••••••"
+      onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">확인</button>
+    <div class="login-error" id="loginError">비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
 
 <!-- ── 헤더 ──────────────────────────────────── -->
 <header>
@@ -1899,5 +1952,24 @@ document.addEventListener('DOMContentLoaded', () => {
 // ESC로 모달 닫기
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 </script>
+<script>
+const APP_PASSWORD = '215366';  // ← 비밀번호 변경 시 여기만 수정
+(function() {
+  const ok = sessionStorage.getItem('dash_auth');
+  if (ok === '1') document.getElementById('loginOverlay').style.display = 'none';
+})();
+function checkLogin() {
+  const v = document.getElementById('loginInput').value;
+  if (v === APP_PASSWORD) {
+    sessionStorage.setItem('dash_auth', '1');
+    document.getElementById('loginOverlay').style.display = 'none';
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('loginInput').value = '';
+    document.getElementById('loginInput').focus();
+  }
+}
+</script>
+
 </body>
 </html>
