@@ -208,25 +208,33 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwAg8eHmso1jg_vVix0M
 
 // 월에 따라 팀 구성 동적 변경
 // 1~4월: 기존 6팀 / 5월~: AUCTION, 출품영업, 법인영업팀(딜러운영 자리), 매입판매팀(직영판매 자리)
+// 팀 정의: colOffset(raw_2026 열 위치) + 유효 월 범위
+// AUCTION/출품영업: 연중 상시(1~12월)
+// 딜러운영/직영판매/제휴영업/매입영업: 1~4월만 유효 (5월부터 조직 개편으로 폐지)
+// 법인영업/매입판매: 5월~ 유효 (딜러운영/직영판매 자리 colOffset 5,6 재사용)
+const ALL_TEAMS = [
+  {key:'AUCTION',  label:'AUCTION',   colOffset:2, from:1,  to:12},
+  {key:'출품영업', label:'출품영업',  colOffset:3, from:1,  to:12},
+  {key:'딜러운영', label:'딜러운영',  colOffset:5, from:1,  to:4},
+  {key:'직영판매', label:'직영판매',  colOffset:6, from:1,  to:4},
+  {key:'제휴영업', label:'제휴영업',  colOffset:7, from:1,  to:4},
+  {key:'매입영업', label:'매입영업',  colOffset:8, from:1,  to:4},
+  {key:'법인영업', label:'법인영업팀', colOffset:5, from:5,  to:12},
+  {key:'매입판매', label:'매입판매팀', colOffset:6, from:5,  to:12},
+];
+
+// 해당 월에 유효한 팀만 반환
 function getTeams(month) {
-  if (!month || month <= 4) {
-    return [
-      {key:'AUCTION',  label:'AUCTION',   colOffset:2},
-      {key:'출품영업', label:'출품영업',  colOffset:3},
-      {key:'딜러운영', label:'딜러운영',  colOffset:5},
-      {key:'직영판매', label:'직영판매',  colOffset:6},
-      {key:'제휴영업', label:'제휴영업',  colOffset:7},
-      {key:'매입영업', label:'매입영업',  colOffset:8},
-    ];
-  } else {
-    return [
-      {key:'AUCTION',  label:'AUCTION',    colOffset:2},
-      {key:'출품영업', label:'출품영업',   colOffset:3},
-      {key:'법인영업', label:'법인영업팀', colOffset:5},
-      {key:'매입판매', label:'매입판매팀', colOffset:6},
-    ];
-  }
+  const m = month || 1;
+  return ALL_TEAMS.filter(t => m >= t.from && m <= t.to);
 }
+
+// 팀의 유효 월 범위 조회
+function teamRange(teamKey) {
+  const t = ALL_TEAMS.find(t => t.key === teamKey);
+  return t ? {from:t.from, to:t.to} : {from:1, to:12};
+}
+
 // 초기값 (페이지 로드 시)
 let TEAMS = getTeams(null);
 
@@ -307,9 +315,12 @@ function teamColOffset(teamKey) {
   return getTeams(state.month).find(t => t.key === teamKey)?.colOffset || 0;
 }
 
-// 값 추출
+// 값 추출 (현재 선택 팀이 해당 월에 유효하지 않으면 0 반환)
 function getVal(rows, rowIdx, m, teamOffset) {
   if (!rows || rowIdx >= rows.length) return 0;
+  // 현재 팀의 유효 월 범위를 벗어나면 0 (다른 팀 데이터 침범 방지)
+  const r = teamRange(state.team);
+  if (m < r.from || m > r.to) return 0;
   const colIdx = 11 + 9*(m-1) + teamOffset;
   const v = rows[rowIdx][colIdx];
   return typeof v === 'number' ? v : 0;
@@ -337,7 +348,20 @@ function renderMonthFilter() {
     btn.className = 'month-btn' + (m === state.month ? ' active' : '');
     btn.textContent = m + '월';
     if (m > state.maxMonth) btn.disabled = true;
-    btn.onclick = () => { state.month = m; renderAll(); };
+    btn.onclick = () => {
+      state.month = m;
+      // 현재 팀이 이 월에 유효하지 않으면 유효한 팀으로 자동 전환
+      const r = teamRange(state.team);
+      if (m < r.from || m > r.to) {
+        const avail = getTeams(m);
+        // 같은 자리(colOffset) 팀으로 우선 전환, 없으면 첫 팀
+        const curOff = teamColOffset(state.team);
+        const sameSlot = avail.find(t => t.colOffset === curOff);
+        state.team = sameSlot ? sameSlot.key : avail[0].key;
+      }
+      renderTeamTabs();
+      renderAll();
+    };
     el.appendChild(btn);
   }
 }
@@ -396,8 +420,12 @@ function renderKPI() {
 function renderChart() {
   const { raw, tgt, ly, team, maxMonth } = state;
   const tOff = teamColOffset(team);
+  const r = teamRange(team);
+  // 팀 유효 기간 ∩ 데이터 존재 기간만 차트에 표시
+  const startM = Math.max(1, r.from);
+  const endM = Math.min(maxMonth, r.to);
   const labels = [], rev=[], revT=[], net=[], netT=[];
-  for (let m = 1; m <= maxMonth; m++) {
+  for (let m = startM; m <= endM; m++) {
     labels.push(m+'월');
     rev.push(+(getVal(raw,8,m,tOff)/1e8).toFixed(2));
     revT.push(+(getVal(tgt,8,m,tOff)/1e8).toFixed(2));
