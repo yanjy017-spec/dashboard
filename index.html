@@ -1183,12 +1183,11 @@ function renderChartDivision() {
   destroyChart('division');
   const m = state.month - 1;
   // 5월부터 팀 구조 변경
-  const teamKeys = state.month <= 4
-    ? Object.keys(state.data.teams)
-    : Object.keys(state.data.teams).filter(k => !['제휴영업','매입영업'].includes(k));
-  const teamLabels = state.month <= 4
-    ? teamKeys
-    : teamKeys.map(k => k === '딜러운영' ? '법인영업팀' : k === '직영판매' ? '매입판매팀' : k);
+  const _k14 = ['AUCTION','출품영업','딜러운영','직영판매','제휴영업','매입영업'];
+  const _k5  = ['AUCTION','출품영업','법인영업','매입판매'];
+  const _lbl = { '법인영업':'법인영업팀', '매입판매':'매입판매팀' };
+  const teamKeys = (state.month <= 4 ? _k14 : _k5).filter(k => state.data.teams[k]);
+  const teamLabels = teamKeys.map(k => _lbl[k] || k);
   const teams = teamKeys;
 
   charts.division = new Chart(document.getElementById('chartDivision'), {
@@ -1292,16 +1291,14 @@ function renderTeamTable() {
   const m = state.month - 1;
   const allTeams = state.data.teams;
 
-  // 5월부터 팀 구조 변경: 딜러운영→법인영업팀, 직영판매→매입판매팀, 제휴/매입영업 제외
-  const teamEntries = state.month <= 4
-    ? Object.entries(allTeams)
-    : Object.entries(allTeams)
-        .filter(([name]) => !['제휴영업','매입영업'].includes(name))
-        .map(([name, t]) => [
-          name === '딜러운영' ? '법인영업팀' :
-          name === '직영판매' ? '매입판매팀' : name,
-          t
-        ]);
+  // 월별 팀 구성: 1~4월은 기존 6팀, 5월~는 신설 4팀
+  const teamKeys1_4 = ['AUCTION','출품영업','딜러운영','직영판매','제휴영업','매입영업'];
+  const teamKeys5   = ['AUCTION','출품영업','법인영업','매입판매'];
+  const labelMap = { '법인영업':'법인영업팀', '매입판매':'매입판매팀' };
+  const activeKeys = state.month <= 4 ? teamKeys1_4 : teamKeys5;
+  const teamEntries = activeKeys
+    .filter(k => allTeams[k])
+    .map(k => [labelMap[k] || k, allTeams[k]]);
   const teams = Object.fromEntries(teamEntries);
 
   function sum(arr) { return (arr||new Array(12).fill(0)).slice(0,m+1).reduce((a,b)=>a+b,0); }
@@ -1754,20 +1751,27 @@ const ROW = {
   매입_실적:       125,  // 행126
   매입_목표:       126,  // 행127
   매입_전년:       127,  // 행128
-  // 【8】 팀별 매출액 (0-indexed: 행165=idx164, 4행 간격)
-  auction_rev_실적:   164, auction_rev_목표:   165, auction_rev_전년:   166,
-  출품_rev_실적:      168, 출품_rev_목표:      169, 출품_rev_전년:      170,
-  딜러_rev_실적:      172, 딜러_rev_목표:      173, 딜러_rev_전년:      174,
-  직영_rev_실적:      176, 직영_rev_목표:      177, 직영_rev_전년:      178,
-  제휴_rev_실적:      180, 제휴_rev_목표:      181, 제휴_rev_전년:      182,
-  매입_rev_실적:      184, 매입_rev_목표:      185, 매입_rev_전년:      186,
-  // 【9】 팀별 매출이익 (0-indexed: 행191=idx190, 4행 간격)
-  auction_gp_실적:    190, auction_gp_목표:    191, auction_gp_전년:    192,
-  출품_gp_실적:       194, 출품_gp_목표:       195, 출품_gp_전년:       196,
-  딜러_gp_실적:       198, 딜러_gp_목표:       199, 딜러_gp_전년:       200,
-  직영_gp_실적:       202, 직영_gp_목표:       203, 직영_gp_전년:       204,
-  제휴_gp_실적:       206, 제휴_gp_목표:       207, 제휴_gp_전년:       208,
-  매입_gp_실적:       210, 매입_gp_목표:       211, 매입_gp_전년:       212,
+  // 【4】 팀별 직접세전 - 5월~ 신설팀 추가
+  법인_실적:       130, 법인_목표:       131, 법인_전년:       132,
+  매입판매_실적:   135, 매입판매_목표:   136, 매입판매_전년:   137,
+  // 【8】 팀별 매출액 (법인/매입판매 추가로 +10 밀림: idx174부터)
+  auction_rev_실적:   174, auction_rev_목표:   175, auction_rev_전년:   176,
+  출품_rev_실적:      178, 출품_rev_목표:      179, 출품_rev_전년:      180,
+  딜러_rev_실적:      182, 딜러_rev_목표:      183, 딜러_rev_전년:      184,
+  직영_rev_실적:      186, 직영_rev_목표:      187, 직영_rev_전년:      188,
+  제휴_rev_실적:      190, 제휴_rev_목표:      191, 제휴_rev_전년:      192,
+  매입_rev_실적:      194, 매입_rev_목표:      195, 매입_rev_전년:      196,
+  법인_rev_실적:      198, 법인_rev_목표:      199, 법인_rev_전년:      200,
+  매입판매_rev_실적:  202, 매입판매_rev_목표:  203, 매입판매_rev_전년:  204,
+  // 【9】 팀별 매출이익 (idx208부터)
+  auction_gp_실적:    208, auction_gp_목표:    209, auction_gp_전년:    210,
+  출품_gp_실적:       212, 출품_gp_목표:       213, 출품_gp_전년:       214,
+  딜러_gp_실적:       216, 딜러_gp_목표:       217, 딜러_gp_전년:       218,
+  직영_gp_실적:       220, 직영_gp_목표:       221, 직영_gp_전년:       222,
+  제휴_gp_실적:       224, 제휴_gp_목표:       225, 제휴_gp_전년:       226,
+  매입_gp_실적:       228, 매입_gp_목표:       229, 매입_gp_전년:       230,
+  법인_gp_실적:       232, 법인_gp_목표:       233, 법인_gp_전년:       234,
+  매입판매_gp_실적:   236, 매입판매_gp_목표:   237, 매입판매_gp_전년:   238,
 };
 
 function parseGSheetRows(rows) {
@@ -1888,6 +1892,16 @@ function parseGSheetRows(rows) {
           rev:    { 실적: getRow12(ROW.매입_rev_실적), 목표: getRow12(ROW.매입_rev_목표), 전년: getRow12(ROW.매입_rev_전년) },
           gp:     { 실적: getRow12(ROW.매입_gp_실적),  목표: getRow12(ROW.매입_gp_목표),  전년: getRow12(ROW.매입_gp_전년) },
           profit: { 실적: getRow12(ROW.매입_실적),     목표: getRow12(ROW.매입_목표),     전년: getRow12(ROW.매입_전년) },
+        },
+        '법인영업': {
+          rev:    { 실적: getRow12(ROW.법인_rev_실적), 목표: getRow12(ROW.법인_rev_목표), 전년: getRow12(ROW.법인_rev_전년) },
+          gp:     { 실적: getRow12(ROW.법인_gp_실적),  목표: getRow12(ROW.법인_gp_목표),  전년: getRow12(ROW.법인_gp_전년) },
+          profit: { 실적: getRow12(ROW.법인_실적),     목표: getRow12(ROW.법인_목표),     전년: getRow12(ROW.법인_전년) },
+        },
+        '매입판매': {
+          rev:    { 실적: getRow12(ROW.매입판매_rev_실적), 목표: getRow12(ROW.매입판매_rev_목표), 전년: getRow12(ROW.매입판매_rev_전년) },
+          gp:     { 실적: getRow12(ROW.매입판매_gp_실적),  목표: getRow12(ROW.매입판매_gp_목표),  전년: getRow12(ROW.매입판매_gp_전년) },
+          profit: { 실적: getRow12(ROW.매입판매_실적),     목표: getRow12(ROW.매입판매_목표),     전년: getRow12(ROW.매입판매_전년) },
         },
       },
 
